@@ -1,5 +1,5 @@
 // Encabezados esperados en el Excel → nombre de columna en Supabase
-const MAPA_COLUMNAS = {
+const MAPA_COLUMNAS_RAW = {
   "fecha infusión": "fecha_infusion",
   "semana": "semana",
   "servicio": "servicio",
@@ -33,6 +33,16 @@ function normalizarEncabezado(texto) {
     .replace(/\s+/g, " ")
     .trim();
 }
+
+// BUG CORREGIDO: las llaves de MAPA_COLUMNAS_RAW tienen acentos ("fecha infusión",
+// "médicos", "honorario médico"), pero normalizarEncabezado() les quita el acento
+// al texto que viene del Excel antes de buscarlo en el mapa. Como resultado, esas
+// búsquedas nunca hacían match y esas columnas (sobre todo la fecha) siempre
+// quedaban vacías. Aquí normalizamos también las llaves del mapa una sola vez,
+// así ya no importa si se escriben con o sin acento.
+const MAPA_COLUMNAS = Object.fromEntries(
+  Object.entries(MAPA_COLUMNAS_RAW).map(([clave, valor]) => [normalizarEncabezado(clave), valor])
+);
 
 // Encuentra en qué fila están los encabezados (busca "paciente" en las primeras 10 filas)
 function ubicarFilaEncabezados(filas) {
