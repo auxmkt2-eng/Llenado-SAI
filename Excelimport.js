@@ -80,6 +80,13 @@ function leerNumero(valor) {
   return isNaN(n) ? null : n;
 }
 
+// Detecta filas de resumen/totales al final del Excel (ej. "TOTAL", "TOTALES", "GRAN TOTAL")
+// que no representan un paciente real y no deben importarse.
+function esFilaDeTotales(paciente) {
+  const texto = String(paciente || "").trim().toUpperCase();
+  return ["TOTAL", "TOTALES", "GRAN TOTAL", "SUMA"].includes(texto);
+}
+
 
 async function procesarArchivoExcel(file, marca, sede) {
   const buffer = await file.arrayBuffer();
@@ -100,6 +107,7 @@ async function procesarArchivoExcel(file, marca, sede) {
     const fila = filas[i];
     const paciente = fila[indices.paciente];
     if (!paciente || String(paciente).trim() === "") continue; // fila vacía, se ignora
+    if (esFilaDeTotales(paciente)) continue; // fila de sumatoria/totales, se ignora
 
     const fechaResult = parsearFecha(fila[indices.fecha_infusion]);
     if (!fechaResult.ok) {
