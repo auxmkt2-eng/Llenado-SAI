@@ -89,14 +89,21 @@ function applyFilters() {
     rows = rows.filter(r => [r.folio, r.paciente, r.medicos, r.diagnostico].join(" ").toLowerCase().includes(text));
   }
 
+  // NUEVO: guardamos el estado de "rows" justo ANTES de aplicar el select manual
+  // de sede. Así el dashboard ejecutivo ya respeta fecha/marca/texto (el bug que
+  // reportaron), pero "Sede líder" y "Mejor ticket" pueden seguir comparando
+  // TODAS las sedes entre sí (dashboard.js aplica su propio filtro de sede aparte).
+  const rowsParaDashboard = rows;
+
   if ($("filtroSede").value) rows = rows.filter(r => normalizarTexto(r.sede) === normalizarTexto($("filtroSede").value));
 
   filteredRows = rows;
   renderKPIs(rows);
   renderTable(rows);
 
-  // Mantiene el dashboard ejecutivo sincronizado con el filtro de sede
-  if (typeof renderExecutiveDashboard === "function") renderExecutiveDashboard(allRows);
+  // Mantiene el dashboard ejecutivo sincronizado con TODOS los filtros de arriba
+  // (fecha, marca, texto), no solo con la sede.
+  if (typeof renderExecutiveDashboard === "function") renderExecutiveDashboard(rowsParaDashboard);
 }
 
 // ============================================================
@@ -399,10 +406,11 @@ async function cargarRegistros() {
       .map(mapRegistroSupabase)
       .sort((a, b) => (b.fechaInfusion || "").localeCompare(a.fechaInfusion || ""));
 
+    // applyFilters() ya llama a renderExecutiveDashboard() con los filtros vigentes
+    // (fecha, marca, texto, sede). Antes había una segunda llamada aquí que lo
+    // sobrescribía con "allRows" sin filtrar justo después — por eso "Monto total
+    // de servicio" ignoraba el filtro de fecha. Se quitó esa llamada duplicada.
     applyFilters();
-
-    // NUEVO: refresca el dashboard ejecutivo (solo tiene efecto si el perfil es admin)
-    if (typeof renderExecutiveDashboard === "function") renderExecutiveDashboard(allRows);
 
     $("ultimaActualizacion").textContent = `Actualizado: ${new Date().toLocaleString("es-MX")}`;
   } catch (err) {
