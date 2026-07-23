@@ -379,7 +379,52 @@ function renderDetalleApartado() {
   let tablaFilasHtml = "";
   let mostrarBuscador = false;
 
-  if (campo.tipo === "numerica") {
+  if (campo.key === "primeraVez") {
+    // Vista especializada: pacientes subsecuentes — nombre, veces que ha
+    // asistido y monto total acumulado (para detectar a los recurrentes).
+    const mapaPacientes = new Map();
+    rows.forEach(r => {
+      const nombre = r.paciente ? String(r.paciente).trim().toUpperCase() : "";
+      if (!nombre) return;
+      if (!mapaPacientes.has(nombre)) mapaPacientes.set(nombre, { veces: 0, monto: 0 });
+      const entry = mapaPacientes.get(nombre);
+      entry.veces += 1;
+      entry.monto += Number(r.montoServicio) || 0;
+    });
+
+    let listaPacientes = Array.from(mapaPacientes.entries())
+      .map(([nombre, d]) => [nombre, d.veces, d.monto])
+      .sort((a, b) => b[1] - a[1] || b[2] - a[2]);
+
+    mostrarBuscador = true;
+    if (apartadoDetBuscarTexto) {
+      const q = normalizarTexto(apartadoDetBuscarTexto);
+      listaPacientes = listaPacientes.filter(([nombre]) => normalizarTexto(nombre).includes(q));
+    }
+
+    const totalPacientes = mapaPacientes.size;
+    const recurrentes = Array.from(mapaPacientes.values()).filter(d => d.veces > 1).length;
+    subtitulo = `${totalPacientes} paciente(s) · ${recurrentes} recurrente(s) (subsecuente)${apartadoDetBuscarTexto ? " (filtrado)" : ""}`;
+
+    if (!listaPacientes.length) {
+      bodyHtml = `<p class="muted">Sin resultados para ese filtro.</p>`;
+    } else {
+      const top10 = listaPacientes.slice(0, 10);
+      const maxVeces = top10[0][1];
+      bodyHtml = `
+        <div class="apartado-bars">
+          ${top10.map(([nombre, veces], i) => `
+            <div class="apartado-bar-row">
+              <span class="apartado-bar-label" title="${escapeHtml(nombre)}">${escapeHtml(nombre)}</span>
+              <div class="apartado-bar-track"><div class="apartado-bar-fill" style="width:${Math.max(3, (veces / maxVeces) * 100)}%; background:${colores.paleta[i % colores.paleta.length]}"></div></div>
+              <span class="apartado-bar-valor">${veces} visita${veces === 1 ? "" : "s"}</span>
+            </div>`).join("")}
+        </div>`;
+    }
+
+    tablaHeadHtml = `<thead><tr><th>Paciente</th><th>Veces que ha asistido</th><th>Monto total</th></tr></thead>`;
+    tablaFilasHtml = listaPacientes.map(([nombre, veces, monto]) => `<tr><td>${escapeHtml(nombre)}</td><td>${veces}</td><td>${formatearMoneda(monto)}</td></tr>`).join("");
+  } else if (campo.tipo === "numerica") {
     const stats = estadisticasNumericas(rows, campo.key);
     if (!stats) {
       bodyHtml = `<p class="muted">No hay datos numéricos para este apartado.</p>`;
