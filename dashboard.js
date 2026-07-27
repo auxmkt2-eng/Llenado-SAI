@@ -471,16 +471,20 @@ function renderDetalleApartado() {
   // ---- Desglose por paciente del valor seleccionado (solo apartados categóricos) ----
   let pacienteHtml = "";
   if (campo.tipo === "categorica" && apartadoValorSeleccionado) {
-    const pacientes = calcularDesglosePacientes(rows, campo.key, apartadoValorSeleccionado);
+    let pacientes = calcularDesglosePacientes(rows, campo.key, apartadoValorSeleccionado);
+    const esSubsecuente = apartadoValorSeleccionado === "SUBSECUENTE";
+    if (esSubsecuente) pacientes = pacientes.filter(p => p.visitas > 1);
+
     const montoTotalPacientes = pacientes.reduce((a, p) => a + p.monto, 0);
     const visitasTotales = pacientes.reduce((a, p) => a + p.visitas, 0);
+    const notaFiltro = esSubsecuente ? " · solo pacientes con más de 1 visita" : "";
 
     pacienteHtml = `
       <div class="apartado-paciente-head">
         <div>
           <span class="eyebrow">Desglose por paciente</span>
           <h4>${escapeHtml(campo.label)}: ${escapeHtml(apartadoValorSeleccionado)}</h4>
-          <p class="muted">${pacientes.length} paciente(s) · ${visitasTotales} visita(s) acumulada(s) · ${formatearMoneda(montoTotalPacientes)} acumulado(s)</p>
+          <p class="muted">${pacientes.length} paciente(s) · ${visitasTotales} visita(s) acumulada(s) · ${formatearMoneda(montoTotalPacientes)} acumulado(s)${notaFiltro}</p>
         </div>
         <button type="button" id="btnApartadoPacienteExportar" class="btn btn-ghost">Exportar a Excel</button>
       </div>
