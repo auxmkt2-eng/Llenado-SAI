@@ -237,6 +237,7 @@ const UMBRAL_GRAFICA_BARRAS = 12; // hasta este número de valores distintos, se
 
 let apartadoActivo = null;
 let apartadoDetBuscarTexto = "";
+let apartadoValorSeleccionado = null; // valor de la categoría elegida para desglosar por paciente
 
 function apartadoValorCelda(valor) {
   if (valor === null || valor === undefined || valor === "") return "SIN DATO";
@@ -290,6 +291,24 @@ function construirHistograma(valores, bins) {
     etiqueta: `${Math.round(c.desde).toLocaleString("es-MX")}–${Math.round(c.hasta).toLocaleString("es-MX")}`,
     count: c.count
   }));
+}
+
+// Desglose por paciente: para un valor concreto de un apartado categórico,
+// agrupa las visitas acumuladas y el monto total acumulado por paciente.
+function calcularDesglosePacientes(rows, key, valor) {
+  const mapa = new Map(); // paciente -> { visitas, monto }
+  rows.forEach(r => {
+    if (apartadoValorCelda(r[key]) !== valor) return;
+    const paciente = (r.paciente || "").trim();
+    if (!paciente) return;
+    const actual = mapa.get(paciente) || { visitas: 0, monto: 0 };
+    actual.visitas += 1;
+    actual.monto += Number(r.montoServicio) || 0;
+    mapa.set(paciente, actual);
+  });
+  return Array.from(mapa.entries())
+    .map(([paciente, datos]) => ({ paciente, visitas: datos.visitas, monto: datos.monto }))
+    .sort((a, b) => b.monto - a.monto || b.visitas - a.visitas);
 }
 
 function renderGridApartados(filtroTexto) {
@@ -351,6 +370,7 @@ function renderGridApartados(filtroTexto) {
 function activarApartado(key) {
   apartadoActivo = key;
   apartadoDetBuscarTexto = "";
+  apartadoValorSeleccionado = null;
   renderGridApartados($("apartadoBuscarCampo") ? $("apartadoBuscarCampo").value : "");
   renderDetalleApartado();
   const det = $("apartadoDetalle");
@@ -409,13 +429,20 @@ function renderDetalleApartado() {
       tablaFilasHtml = hist.map(h => `<tr><td>${escapeHtml(h.etiqueta)}</td><td>${h.count}</td><td>${stats.n ? Math.round((h.count / stats.n) * 100) : 0}%</td></tr>`).join("");
     }
   } else {
-    let dist = distribucionCategorica(rows, campo.key);
+    const distTotal = distribucionCategorica(rows, campo.key);
+    let dist = distTotal;
     const totalReg = dist.reduce((s, [, c]) => s + c, 0);
     mostrarBuscador = dist.length > UMBRAL_GRAFICA_BARRAS;
 
     if (apartadoDetBuscarTexto) {
       const q = normalizarTexto(apartadoDetBuscarTexto);
       dist = dist.filter(([v]) => normalizarTexto(v).includes(q));
+    }
+
+    // Si el valor elegido para el desglose por paciente ya no existe (cambió el apartado
+    // o el filtro lo dejó fuera), se limpia la selección.
+    if (apartadoValorSeleccionado && !distTotal.some(([v]) => v === apartadoValorSeleccionado)) {
+      apartadoValorSeleccionado = null;
     }
 
     subtitulo = `${totalReg} registro(s) analizado(s) · ${dist.length} valor(es) distinto(s)${apartadoDetBuscarTexto ? " (filtrado)" : ""}`;
@@ -427,7 +454,7 @@ function renderDetalleApartado() {
       bodyHtml = `
         <div class="apartado-bars">
           ${dist.map(([val, count], i) => `
-            <div class="apartado-bar-row">
+            <div class="apartado-bar-row apartado-bar-row--clic${val === apartadoValorSeleccionado ? " active" : ""}" data-valor="${escapeHtml(val)}" title="Ver desglose por paciente">
               <span class="apartado-bar-label" title="${escapeHtml(val)}">${escapeHtml(val)}</span>
               <div class="apartado-bar-track"><div class="apartado-bar-fill" style="width:${Math.max(3, (count / maxC) * 100)}%; background:${colores.paleta[i % colores.paleta.length]}"></div></div>
               <span class="apartado-bar-valor">${count} · ${totalReg ? Math.round((count / totalReg) * 100) : 0}%</span>
@@ -438,7 +465,35 @@ function renderDetalleApartado() {
     }
 
     tablaHeadHtml = `<thead><tr><th>${escapeHtml(campo.label)}</th><th>Registros</th><th>%</th></tr></thead>`;
-    tablaFilasHtml = dist.map(([val, count]) => `<tr><td>${escapeHtml(val)}</td><td>${count}</td><td>${totalReg ? Math.round((count / totalReg) * 100) : 0}%</td></tr>`).join("");
+    tablaFilasHtml = dist.map(([val, count]) => `<tr class="apartado-fila-clic${val === apartadoValorSeleccionado ? " active" : ""}" data-valor="${escapeHtml(val)}" title="Ver desglose por paciente"><td>${escapeHtml(val)}</td><td>${count}</td><td>${totalReg ? Math.round((count / totalReg) * 100) : 0}%</td></tr>`).join("");
+  }
+
+  // ---- Desglose por paciente del valor seleccionado (solo apartados categóricos) ----
+  let pacienteHtml = "";
+  if (campo.tipo === "categorica" && apartadoValorSeleccionado) {
+    const pacientes = calcularDesglosePacientes(rows, campo.key, apartadoValorSeleccionado);
+    const montoTotalPacientes = pacientes.reduce((a, p) => a + p.monto, 0);
+    const visitasTotales = pacientes.reduce((a, p) => a + p.visitas, 0);
+
+    pacienteHtml = `
+      <div class="apartado-paciente-head">
+        <div>
+          <span class="eyebrow">Desglose por paciente</span>
+          <h4>${escapeHtml(campo.label)}: ${escapeHtml(apartadoValorSeleccionado)}</h4>
+          <p class="muted">${pacientes.length} paciente(s) · ${visitasTotales} visita(s) acumulada(s) · ${formatearMoneda(montoTotalPacientes)} acumulado(s)</p>
+        </div>
+        <button type="button" id="btnApartadoPacienteExportar" class="btn btn-ghost">Exportar a Excel</button>
+      </div>
+      <div class="pivot-table-wrap apartado-table-wrap">
+        <table class="pivot-table" id="apartadoPacienteTabla">
+          <thead><tr><th>Paciente</th><th>Visitas acumuladas</th><th>Monto total acumulado</th></tr></thead>
+          <tbody>
+            ${pacientes.length
+              ? pacientes.map(p => `<tr><td>${escapeHtml(p.paciente)}</td><td>${p.visitas}</td><td>${formatearMoneda(p.monto)}</td></tr>`).join("")
+              : `<tr><td colspan="3" class="muted">Sin pacientes con este valor.</td></tr>`}
+          </tbody>
+        </table>
+      </div>`;
   }
 
   cont.innerHTML = `
@@ -458,6 +513,8 @@ function renderDetalleApartado() {
       <div class="pivot-table-wrap apartado-table-wrap">
         <table class="pivot-table" id="apartadoTabla">${tablaHeadHtml}<tbody>${tablaFilasHtml}</tbody></table>
       </div>
+      ${campo.tipo === "categorica" ? `<p class="muted apartado-paciente-hint">Haz clic en una barra o en una fila de la tabla para ver el desglose por paciente (visitas y monto acumulado).</p>` : ""}
+      ${pacienteHtml}
     </div>`;
 
   const inputDet = $("apartadoDetBuscar");
@@ -476,6 +533,18 @@ function renderDetalleApartado() {
 
   const btnExp = $("btnApartadoExportar");
   if (btnExp) btnExp.addEventListener("click", () => exportarApartadoAExcel(campo));
+
+  const btnExpPacientes = $("btnApartadoPacienteExportar");
+  if (btnExpPacientes) btnExpPacientes.addEventListener("click", () => exportarPacientesAExcel(campo, apartadoValorSeleccionado));
+
+  // Clic en una barra o fila de la tabla: selecciona/deselecciona el valor para desglosarlo por paciente
+  cont.querySelectorAll(".apartado-bar-row--clic, .apartado-fila-clic").forEach(el => {
+    el.addEventListener("click", () => {
+      const valor = el.dataset.valor;
+      apartadoValorSeleccionado = (apartadoValorSeleccionado === valor) ? null : valor;
+      renderDetalleApartado();
+    });
+  });
 }
 
 function exportarApartadoAExcel(campo) {
@@ -494,6 +563,25 @@ function exportarApartadoAExcel(campo) {
   const fechaHoy = new Date().toISOString().slice(0, 10);
   XLSX.writeFile(libro, `desglose_${campo.key}_${fechaHoy}.xlsx`);
   showToast("Desglose exportado.", "success");
+}
+
+function exportarPacientesAExcel(campo, valor) {
+  const tabla = $("apartadoPacienteTabla");
+  if (!tabla || !tabla.querySelector("tbody") || !tabla.querySelector("tbody").children.length) {
+    showToast("No hay pacientes en este desglose para exportar.", "error");
+    return;
+  }
+  if (typeof XLSX === "undefined") {
+    showToast("No se pudo exportar: falta la librería XLSX.", "error");
+    return;
+  }
+  const hoja = XLSX.utils.table_to_sheet(tabla);
+  const libro = XLSX.utils.book_new();
+  const nombreHoja = `${campo.label}-${valor}`.slice(0, 28);
+  XLSX.utils.book_append_sheet(libro, hoja, nombreHoja);
+  const fechaHoy = new Date().toISOString().slice(0, 10);
+  XLSX.writeFile(libro, `desglose_pacientes_${campo.key}_${fechaHoy}.xlsx`);
+  showToast("Desglose por paciente exportado.", "success");
 }
 
 function initDashboardInteractivoEventos() {
