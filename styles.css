@@ -506,6 +506,21 @@ html[data-theme="light"] .toast.error { border-color: rgba(220,38,38,.3); backgr
 .apartado-tabla-nota { margin: 0 0 .8rem; }
 .apartado-table-wrap { max-height: 380px; }
 
+/* Barras y filas clicables para desglosar por paciente */
+.apartado-bar-row--clic, .apartado-fila-clic { cursor: pointer; border-radius: 8px; transition: background .15s ease; }
+.apartado-bar-row--clic:hover, .apartado-fila-clic:hover td { background: rgba(78,163,255,.1); }
+.apartado-bar-row--clic.active { background: rgba(78,163,255,.14); box-shadow: 0 0 0 1px rgba(78,163,255,.4) inset; }
+.apartado-fila-clic.active td { background: rgba(78,163,255,.16); }
+.apartado-paciente-hint { margin: -.4rem 0 .9rem; font-size: .8rem; }
+
+.apartado-paciente-head {
+  display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between;
+  gap: 1rem; margin: 1.4rem 0 1rem; padding-top: 1.1rem; border-top: 1px solid rgba(255,255,255,.08);
+}
+.apartado-paciente-head h4 { margin: .25rem 0; font-size: 1rem; }
+.apartado-paciente-head p { margin: 0; }
+html[data-theme="light"] .apartado-paciente-head { border-top-color: rgba(15,23,42,.1); }
+
 
 /* Tema claro para el dashboard ejecutivo */
 html[data-theme="light"] .panel-executive {
@@ -545,4 +560,3 @@ html[data-theme="light"] .apartado-detalle-actions input { background: #f3f6fb; 
 html[data-theme="light"] .apartado-stat { background: linear-gradient(135deg, rgba(78,163,255,.1), rgba(124,92,255,.06)); border-color: rgba(78,163,255,.2); }
 html[data-theme="light"] .apartado-bar-track { background: rgba(15,23,42,.08); }
 html[data-theme="light"] .apartado-bar-label { color: #1f2937; }
-
