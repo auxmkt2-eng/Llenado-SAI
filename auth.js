@@ -1,25 +1,62 @@
 const USERS = [
-  { username: "admin",    password: "innvida2026", role: "admin", sede: null,       displayName: "Administración general" },
-  { username: "morelia",  password: "morelia2026", role: "sede",  sede: "Morelia",  displayName: "Sede Morelia" },
-  { username: "toluca",   password: "toluca2026",  role: "sede",  sede: "Toluca",   displayName: "Sede Toluca" },
-  { username: "narvarte", password: "narvarte2026",role: "sede",  sede: "Narvarte", displayName: "Sede Narvarte" },
-  { username: "tijuana",  password: "tijuana2026", role: "sede",  sede: "Tijuana",  displayName: "Sede Tijuana" }
+  {
+    username: "admin",
+    password: "innvida2026",
+    role: "admin",
+    sede: null,
+    displayName: "Administración general"
+  },
+  {
+    username: "morelia",
+    password: "morelia2026",
+    role: "sede",
+    sede: "Morelia",
+    displayName: "Sede Morelia"
+  },
+  {
+    username: "toluca",
+    password: "toluca2026",
+    role: "sede",
+    sede: "Toluca",
+    displayName: "Sede Toluca"
+  },
+  {
+    username: "narvarte",
+    password: "narvarte2026",
+    role: "sede",
+    sede: "Narvarte",
+    displayName: "Sede Narvarte"
+  },
+  {
+    username: "tijuana",
+    password: "tijuana2026",
+    role: "sede",
+    sede: "Tijuana",
+    displayName: "Sede Tijuana"
+  }
 ];
 
 const SESSION_KEY = "innvidaSesionUsuario";
 
-// currentUser queda disponible globalmente para que main.js lo use
 let currentUser = null;
 
 function findUser(username, password) {
   const normalized = String(username || "").trim().toLowerCase();
-  return USERS.find(u => u.username.toLowerCase() === normalized && u.password === password) || null;
+
+  return USERS.find(
+    u =>
+      u.username.toLowerCase() === normalized &&
+      u.password === password
+  ) || null;
 }
 
 function saveSession(user) {
-  // Guardamos solo lo necesario, nunca la contraseña
   const { username, role, sede, displayName } = user;
-  localStorage.setItem(SESSION_KEY, JSON.stringify({ username, role, sede, displayName }));
+
+  localStorage.setItem(
+    SESSION_KEY,
+    JSON.stringify({ username, role, sede, displayName })
+  );
 }
 
 function loadSession() {
@@ -38,9 +75,12 @@ function clearSession() {
 function showApp() {
   document.getElementById("loginContainer").classList.add("hidden");
   document.getElementById("appContainer").classList.remove("hidden");
+
   applyRoleToUI();
-  // Si main.js ya cargó sus funciones, inicializamos el dashboard aquí
-  if (typeof initDashboard === "function") initDashboard();
+
+  if (typeof initDashboard === "function") {
+    initDashboard();
+  }
 }
 
 function showLogin() {
@@ -48,9 +88,10 @@ function showLogin() {
   document.getElementById("loginContainer").classList.remove("hidden");
 }
 
-// ----- 2) Ajustar la interfaz según el rol -----------------------
+// Ajusta qué elementos puede usar cada tipo de usuario.
 function applyRoleToUI() {
   const info = document.getElementById("sesionInfo");
+
   if (info) {
     info.textContent = currentUser.role === "admin"
       ? `${currentUser.displayName} · Ve todas las sedes`
@@ -58,46 +99,92 @@ function applyRoleToUI() {
   }
 
   const campoSede = document.getElementById("campoFiltroSede");
+
   if (campoSede) {
-    // Los perfiles de sede no necesitan elegir sede: ya está fija.
-    campoSede.classList.toggle("hidden", currentUser.role !== "admin");
+    // La sede ya está asignada al usuario; no debe seleccionarla manualmente.
+    campoSede.classList.toggle(
+      "hidden",
+      currentUser.role !== "admin"
+    );
   }
- // NUEVO: Importar solo para sede, Exportar solo para admin
+
+  // Importar solamente para sedes; exportar solamente para administración.
   const btnImportar = document.getElementById("btnImportarExcel");
   const btnExportar = document.getElementById("btnExportarExcel");
-  if (btnImportar) btnImportar.classList.toggle("hidden", currentUser.role === "admin");
-  if (btnExportar) btnExportar.classList.toggle("hidden", currentUser.role !== "admin");
 
-  // NUEVO: Dashboard ejecutivo — visible SOLO para admin
+  if (btnImportar) {
+    btnImportar.classList.toggle(
+      "hidden",
+      currentUser.role === "admin"
+    );
+  }
+
+  if (btnExportar) {
+    btnExportar.classList.toggle(
+      "hidden",
+      currentUser.role !== "admin"
+    );
+  }
+
+  // Dashboard ejecutivo: solo administrador.
   const panelDashboardAdmin = document.getElementById("panelDashboardAdmin");
-  if (panelDashboardAdmin) panelDashboardAdmin.classList.toggle("hidden", currentUser.role !== "admin");
 
-  // NUEVO: "Nuevo registro" solo visible para perfiles de sede, oculto para admin
+  if (panelDashboardAdmin) {
+    panelDashboardAdmin.classList.toggle(
+      "hidden",
+      currentUser.role !== "admin"
+    );
+  }
+
+  // Nuevo registro: solo sedes.
   const btnNuevoRegistro = document.getElementById("btnNuevoRegistro");
-  if (btnNuevoRegistro) btnNuevoRegistro.classList.toggle("hidden", currentUser.role === "admin");
 
-  // NUEVO: Editar y Borrar registros: SOLO admin puede hacerlo
+  if (btnNuevoRegistro) {
+    btnNuevoRegistro.classList.toggle(
+      "hidden",
+      currentUser.role === "admin"
+    );
+  }
+
+  // Admin y sedes pueden guardar modificaciones.
+  // Borrar registros es exclusivo de administración.
   const btnGuardarDetalle = document.getElementById("btnGuardarDetalle");
   const btnBorrarRegistro = document.getElementById("btnBorrarRegistro");
-  if (btnGuardarDetalle) btnGuardarDetalle.classList.toggle("hidden", currentUser.role !== "admin");
-  if (btnBorrarRegistro) btnBorrarRegistro.classList.toggle("hidden", currentUser.role !== "admin");
+
+  if (btnGuardarDetalle) {
+    btnGuardarDetalle.classList.toggle(
+      "hidden",
+      !["admin", "sede"].includes(currentUser.role)
+    );
+  }
+
+  if (btnBorrarRegistro) {
+    btnBorrarRegistro.classList.toggle(
+      "hidden",
+      currentUser.role !== "admin"
+    );
+  }
 }
 
-// ----- 3) Eventos de login / logout -------------------------------
 document.addEventListener("DOMContentLoaded", () => {
   const saved = loadSession();
+
   if (saved) {
     currentUser = saved;
     showApp();
   }
 
   const form = document.getElementById("loginForm");
-  form.addEventListener("submit", (e) => {
+
+  form.addEventListener("submit", e => {
     e.preventDefault();
+
     const username = document.getElementById("loginUsername").value;
     const password = document.getElementById("loginPassword").value;
     const errorEl = document.getElementById("loginError");
+
     const user = findUser(username, password);
+
     if (user) {
       currentUser = user;
       saveSession(user);
@@ -109,6 +196,7 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   const btnSalir = document.getElementById("btnCerrarSesion");
+
   btnSalir.addEventListener("click", () => {
     clearSession();
     currentUser = null;
