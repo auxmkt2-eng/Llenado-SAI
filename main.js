@@ -1,10 +1,8 @@
 // ============================================================
 // 1) ESTADO — los datos reales se cargan desde Supabase
-//    (ver cargarRegistros(), llamada al iniciar el dashboard
-//    y también desde Excelimport.js / nuevoRegistro.js tras
-//    guardar un registro nuevo)
 // ============================================================
 const SEDES = ["", "Morelia", "Toluca", "Narvarte", "Tijuana"];
+
 function calcularTotal(subtotal, iva) {
   const sub = Number(subtotal) || 0;
   const ivaNum = Number(iva) || 0;
@@ -18,50 +16,73 @@ function calcularTotal(subtotal, iva) {
 const $ = (id) => document.getElementById(id);
 
 function formatearMoneda(valor) {
-  return new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN", maximumFractionDigits: 2 }).format(Number(valor || 0));
+  return new Intl.NumberFormat("es-MX", {
+    style: "currency",
+    currency: "MXN",
+    maximumFractionDigits: 2
+  }).format(Number(valor || 0));
 }
+
 function escapeHtml(value) {
   return String(value ?? "")
-    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }
-// Compara textos ignorando mayúsculas/minúsculas, espacios extra y acentos
+
 function normalizarTexto(valor) {
   return String(valor ?? "")
     .trim()
     .toLowerCase()
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, ""); // quita acentos (á->a, é->e, etc.)
+    .replace(/[\u0300-\u036f]/g, "");
 }
+
 function selectedValues(select) {
-  return Array.from(select.options).filter(o => o.selected).map(o => o.value);
+  return Array.from(select.options)
+    .filter(o => o.selected)
+    .map(o => o.value);
 }
+
 function setSelectOptions(select, options) {
   select.innerHTML = "";
   options.forEach(op => {
     const o = document.createElement("option");
-    o.value = op; o.textContent = op;
+    o.value = op;
+    o.textContent = op;
     select.appendChild(o);
   });
 }
+
 function setSaveStatus(message, type = "info") {
   const el = $("saveStatus");
   el.textContent = message;
-  el.style.color = type === "error" ? "#fecaca" : type === "success" ? "#bbf7d0" : "";
+  el.style.color =
+    type === "error" ? "#fecaca" :
+    type === "success" ? "#bbf7d0" : "";
 }
+
 let toastTimer = null;
+
 function showToast(message, type = "success") {
   const toast = $("toast");
   toast.textContent = message;
   toast.className = `toast ${type}`;
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => toast.className = "toast hidden", 2600);
+  toastTimer = setTimeout(() => {
+    toast.className = "toast hidden";
+  }, 2600);
 }
+
 // ============================================================
 // 3) INIT DE FILTROS
 // ============================================================
 function initFilters() {
-  $("filtroSede").innerHTML = SEDES.map(s => `<option value="${s}">${s || "Todas"}</option>`).join("");
+  $("filtroSede").innerHTML = SEDES.map(
+    s => `<option value="${s}">${s || "Todas"}</option>`
+  ).join("");
 }
 
 // ============================================================
@@ -70,47 +91,65 @@ function initFilters() {
 function applyFilters() {
   let rows = [...allRows];
 
-  // Regla de negocio clave: un usuario de sede SOLO ve su propia sede,
-  // sin importar lo que diga el selector de filtros.
+  // Las sedes solamente pueden ver registros de su propia sede.
   if (currentUser && currentUser.role === "sede") {
-    rows = rows.filter(r => normalizarTexto(r.sede) === normalizarTexto(currentUser.sede));
+    rows = rows.filter(
+      r => normalizarTexto(r.sede) === normalizarTexto(currentUser.sede)
+    );
   }
 
-  const marcas = Array.from(document.querySelectorAll(".filtro-marca")).filter(cb => cb.checked).map(cb => normalizarTexto(cb.value));
-  if (marcas.length) rows = rows.filter(r => marcas.includes(normalizarTexto(r.marca)));
+  const marcas = Array.from(document.querySelectorAll(".filtro-marca"))
+    .filter(cb => cb.checked)
+    .map(cb => normalizarTexto(cb.value));
+
+  if (marcas.length) {
+    rows = rows.filter(r => marcas.includes(normalizarTexto(r.marca)));
+  }
 
   const desde = $("filtroFechaInicio").value;
   const hasta = $("filtroFechaFin").value;
+
   if (desde) rows = rows.filter(r => (r.fechaInfusion || "") >= desde);
   if (hasta) rows = rows.filter(r => (r.fechaInfusion || "") <= hasta);
 
   const text = $("filtroTexto").value.trim().toLowerCase();
+
   if (text) {
-    rows = rows.filter(r => [r.folio, r.paciente, r.medicos, r.diagnostico].join(" ").toLowerCase().includes(text));
+    rows = rows.filter(r =>
+      [r.folio, r.paciente, r.medicos, r.diagnostico]
+        .join(" ")
+        .toLowerCase()
+        .includes(text)
+    );
   }
 
-  // NUEVO: guardamos el estado de "rows" justo ANTES de aplicar el select manual
-  // de sede. Así el dashboard ejecutivo ya respeta fecha/marca/texto (el bug que
-  // reportaron), pero "Sede líder" y "Mejor ticket" pueden seguir comparando
-  // TODAS las sedes entre sí (dashboard.js aplica su propio filtro de sede aparte).
   const rowsParaDashboard = rows;
 
-  if ($("filtroSede").value) rows = rows.filter(r => normalizarTexto(r.sede) === normalizarTexto($("filtroSede").value));
+  if ($("filtroSede").value) {
+    rows = rows.filter(
+      r =>
+        normalizarTexto(r.sede) ===
+        normalizarTexto($("filtroSede").value)
+    );
+  }
 
   filteredRows = rows;
   renderKPIs(rows);
   renderTable(rows);
 
-  // Mantiene el dashboard ejecutivo sincronizado con TODOS los filtros de arriba
-  // (fecha, marca, texto), no solo con la sede.
-  if (typeof renderExecutiveDashboard === "function") renderExecutiveDashboard(rowsParaDashboard);
+  if (typeof renderExecutiveDashboard === "function") {
+    renderExecutiveDashboard(rowsParaDashboard);
+  }
 }
 
 // ============================================================
 // 5) KPIs
 // ============================================================
 function renderKPIs(rows) {
-  const subtotal = rows.reduce((a, r) => a + (r.montoServicio || 0), 0);
+  const subtotal = rows.reduce(
+    (a, r) => a + (r.montoServicio || 0),
+    0
+  );
 
   $("kpiSubtotal").textContent = rows.length;
   $("kpiSubtotalMonto").textContent = formatearMoneda(subtotal);
@@ -122,6 +161,7 @@ function renderKPIs(rows) {
 // ============================================================
 function renderTable(rows) {
   const tbody = $("tablaCotizacionesBody");
+
   tbody.innerHTML = rows.map(row => `
     <tr>
       <td>${escapeHtml(row.fechaInfusion || "—")}</td>
@@ -158,13 +198,17 @@ function renderTable(rows) {
     </tr>
   `).join("");
 
-  tbody.querySelectorAll("[data-open]").forEach(btn => btn.addEventListener("click", () => openDrawer(btn.dataset.open)));
+  tbody.querySelectorAll("[data-open]").forEach(btn => {
+    btn.addEventListener("click", () => openDrawer(btn.dataset.open));
+  });
 }
 
 function persist(row, msg) {
-  // Aquí conectarías tu API real (fetch/Firestore/etc.) en vez de solo re-renderizar.
   applyFilters();
-  setSaveStatus(`Último guardado: ${msg} · ${new Date().toLocaleString("es-MX")}`, "success");
+  setSaveStatus(
+    `Último guardado: ${msg} · ${new Date().toLocaleString("es-MX")}`,
+    "success"
+  );
   showToast("Cambios guardados", "success");
 }
 
@@ -176,9 +220,17 @@ const CAMPOS_EDITABLES_DETALLE = [
   "edHoraIngreso", "edHoraSalida", "edViaAcceso", "edTiempoInfusion",
   "edCiclo", "edNumeroCiclos", "edPaciente",
   "edDelegacion", "edEdad", "edSexo",
-  "edEstatusPaciente", "edMedicos", "edTipoTratamiento", "edAseguradora", "edHonorarioMedico",
-  "edPrimeraVez", "edSubtotal", "edIva", "edMontoServicio", "edTratamiento", "edDiagnostico",
-  "edNotas", "edSede"
+  "edEstatusPaciente", "edMedicos", "edTipoTratamiento",
+  "edAseguradora", "edHonorarioMedico",
+  "edPrimeraVez", "edSubtotal", "edIva", "edMontoServicio",
+  "edTratamiento", "edDiagnostico", "edNotas", "edSede"
+];
+
+// Estos importes son exclusivos de administración.
+const CAMPOS_FINANCIEROS_DETALLE = [
+  "edSubtotal",
+  "edIva",
+  "edMontoServicio"
 ];
 
 function openDrawer(id) {
@@ -187,7 +239,8 @@ function openDrawer(id) {
 
   $("drawerMarca").textContent = selectedRow.marca;
   $("drawerPaciente").textContent = selectedRow.paciente || "Sin nombre";
-  $("drawerMeta").textContent = `${selectedRow.folio || "Sin folio"} · ${selectedRow.medicos || "Sin médico"}`;
+  $("drawerMeta").textContent =
+    `${selectedRow.folio || "Sin folio"} · ${selectedRow.medicos || "Sin médico"}`;
 
   $("edFechaInfusion").value = selectedRow.fechaInfusion || "";
   $("edSemana").value = selectedRow.semana ?? "";
@@ -217,9 +270,13 @@ function openDrawer(id) {
   $("edNotas").value = selectedRow.notas || "";
   $("edSede").value = selectedRow.sede || "";
 
-  // Solo admin puede editar los datos del registro; sede solo puede consultarlo.
+  // Administración edita todo. Sede edita todo excepto los tres importes.
   const esAdmin = currentUser && currentUser.role === "admin";
-  CAMPOS_EDITABLES_DETALLE.forEach(id => { $(id).disabled = !esAdmin; });
+
+  CAMPOS_EDITABLES_DETALLE.forEach(id => {
+    $(id).disabled =
+      !esAdmin && CAMPOS_FINANCIEROS_DETALLE.includes(id);
+  });
 
   $("drawer").classList.remove("hidden");
   $("drawerBackdrop").classList.remove("hidden");
@@ -234,13 +291,14 @@ function closeDrawer() {
 async function saveDrawer() {
   if (!selectedRow) return;
 
-  if (!currentUser || currentUser.role !== "admin") {
-    showToast("Solo el administrador puede editar registros.", "error");
+  if (!currentUser || !["admin", "sede"].includes(currentUser.role)) {
+    showToast("Tu sesión no tiene permiso para editar registros.", "error");
     return;
   }
 
   const paciente = $("edPaciente").value.trim();
   const fechaInfusion = $("edFechaInfusion").value;
+
   if (!paciente || !fechaInfusion) {
     showToast("Paciente y Fecha Infusión son obligatorios.", "error");
     return;
@@ -276,11 +334,25 @@ async function saveDrawer() {
     sede: $("edSede").value.trim() || null
   };
 
+  // Seguridad adicional para que una sede no pueda enviar cambios
+  // a subtotal, IVA ni monto del servicio.
+  if (currentUser.role === "sede") {
+    delete cambios.subtotal;
+    delete cambios.iva;
+    delete cambios.monto_del_servicio;
+  }
+
   const btn = $("btnGuardarDetalle");
   btn.disabled = true;
+
   try {
-    const { error } = await supabaseClient.from("cotizaciones").update(cambios).eq("id", selectedRow.id);
+    const { error } = await supabaseClient
+      .from("cotizaciones")
+      .update(cambios)
+      .eq("id", selectedRow.id);
+
     if (error) throw new Error(error.message);
+
     showToast(`Registro actualizado: ${selectedRow.folio}`, "success");
     closeDrawer();
     await cargarRegistros();
@@ -302,18 +374,22 @@ function leerNumeroEd(valor) {
 // 8) EVENTOS
 // ============================================================
 function initEvents() {
-  ["filtroTexto", "filtroFechaInicio", "filtroFechaFin", "filtroSede"].forEach(id => {
-    $(id).addEventListener("input", applyFilters);
-    $(id).addEventListener("change", applyFilters);
-  });
-  document.querySelectorAll(".filtro-marca").forEach(cb => cb.addEventListener("change", applyFilters));
+  ["filtroTexto", "filtroFechaInicio", "filtroFechaFin", "filtroSede"]
+    .forEach(id => {
+      $(id).addEventListener("input", applyFilters);
+      $(id).addEventListener("change", applyFilters);
+    });
+
+  document.querySelectorAll(".filtro-marca")
+    .forEach(cb => cb.addEventListener("change", applyFilters));
 
   $("btnLimpiarFiltros").addEventListener("click", () => {
     $("filtroTexto").value = "";
     $("filtroFechaInicio").value = "";
     $("filtroFechaFin").value = "";
     $("filtroSede").value = "";
-    document.querySelectorAll(".filtro-marca").forEach(cb => cb.checked = true);
+    document.querySelectorAll(".filtro-marca")
+      .forEach(cb => cb.checked = true);
     applyFilters();
   });
 
@@ -322,12 +398,15 @@ function initEvents() {
   $("btnGuardarDetalle").addEventListener("click", saveDrawer);
   $("btnBorrarRegistro").addEventListener("click", borrarRegistroActual);
 
- function actualizarTotalEdicion() {
-  $("edMontoServicio").value = calcularTotal($("edSubtotal").value, $("edIva").value);
-}
+  function actualizarTotalEdicion() {
+    $("edMontoServicio").value = calcularTotal(
+      $("edSubtotal").value,
+      $("edIva").value
+    );
+  }
 
-$("edSubtotal").addEventListener("input", actualizarTotalEdicion);
-$("edIva").addEventListener("input", actualizarTotalEdicion);
+  $("edSubtotal").addEventListener("input", actualizarTotalEdicion);
+  $("edIva").addEventListener("input", actualizarTotalEdicion);
 }
 
 async function borrarRegistroActual() {
@@ -339,16 +418,28 @@ async function borrarRegistroActual() {
   }
 
   const confirmado = window.confirm(
-    `Vas a borrar el registro de "${selectedRow.paciente || "este paciente"}" (${selectedRow.folio || "sin folio"}). Esta acción no se puede deshacer. ¿Continuar?`
+    `Vas a borrar el registro de "${selectedRow.paciente || "este paciente"}" ` +
+    `(${selectedRow.folio || "sin folio"}). Esta acción no se puede deshacer. ¿Continuar?`
   );
+
   if (!confirmado) return;
 
   const btn = $("btnBorrarRegistro");
   btn.disabled = true;
+
   try {
-    const { error } = await supabaseClient.from("cotizaciones").delete().eq("id", selectedRow.id);
+    const { error } = await supabaseClient
+      .from("cotizaciones")
+      .delete()
+      .eq("id", selectedRow.id);
+
     if (error) throw new Error(error.message);
-    showToast(`Registro borrado: ${selectedRow.folio || selectedRow.paciente}`, "success");
+
+    showToast(
+      `Registro borrado: ${selectedRow.folio || selectedRow.paciente}`,
+      "success"
+    );
+
     closeDrawer();
     await cargarRegistros();
   } catch (err) {
@@ -399,37 +490,44 @@ function mapRegistroSupabase(r) {
 
 async function cargarRegistros() {
   try {
-    const { data, error } = await supabaseClient.from("cotizaciones").select("*");
+    const { data, error } = await supabaseClient
+      .from("cotizaciones")
+      .select("*");
+
     if (error) throw error;
 
     allRows = (data || [])
       .map(mapRegistroSupabase)
-      .sort((a, b) => (b.fechaInfusion || "").localeCompare(a.fechaInfusion || ""));
+      .sort((a, b) =>
+        (b.fechaInfusion || "").localeCompare(a.fechaInfusion || "")
+      );
 
-    // applyFilters() ya llama a renderExecutiveDashboard() con los filtros vigentes
-    // (fecha, marca, texto, sede). Antes había una segunda llamada aquí que lo
-    // sobrescribía con "allRows" sin filtrar justo después — por eso "Monto total
-    // de servicio" ignoraba el filtro de fecha. Se quitó esa llamada duplicada.
     applyFilters();
 
-    $("ultimaActualizacion").textContent = `Actualizado: ${new Date().toLocaleString("es-MX")}`;
+    $("ultimaActualizacion").textContent =
+      `Actualizado: ${new Date().toLocaleString("es-MX")}`;
   } catch (err) {
     console.error(err);
-    showToast(err.message || "No se pudieron cargar los registros de Supabase.", "error");
+    showToast(
+      err.message || "No se pudieron cargar los registros de Supabase.",
+      "error"
+    );
   }
 }
-// Se expone globalmente para que Excelimport.js y nuevoRegistro.js
-// puedan refrescar la tabla justo después de guardar.
+
 window.cargarRegistros = cargarRegistros;
 
 // ============================================================
 // 10) INIT
 // ============================================================
-// auth.js llama a initDashboard() justo después de mostrar el
-// panel (login exitoso o sesión ya guardada en localStorage).
 let dashboardInited = false;
+
 function initDashboard() {
-  if (dashboardInited) { cargarRegistros(); return; } // ya estaba inicializado, solo refresca
+  if (dashboardInited) {
+    cargarRegistros();
+    return;
+  }
+
   dashboardInited = true;
   initFilters();
   initEvents();
@@ -437,35 +535,46 @@ function initDashboard() {
 }
 
 // ============================================================
-// Tema claro / oscuro — preferencia guardada en localStorage
+// Tema claro / oscuro
 // ============================================================
 (function () {
   const THEME_KEY = "innvidaTema";
 
   function temaGuardado() {
-    return localStorage.getItem(THEME_KEY) === "claro" ? "claro" : "oscuro";
+    return localStorage.getItem(THEME_KEY) === "claro"
+      ? "claro"
+      : "oscuro";
   }
 
   function aplicarTema(tema) {
-    document.documentElement.setAttribute("data-theme", tema === "claro" ? "light" : "dark");
+    document.documentElement.setAttribute(
+      "data-theme",
+      tema === "claro" ? "light" : "dark"
+    );
   }
 
   function actualizarBotones(tema) {
-    document.querySelectorAll("[data-theme-toggle]").forEach((btn) => {
+    document.querySelectorAll("[data-theme-toggle]").forEach(btn => {
       btn.textContent = tema === "claro" ? "🌙 Oscuro" : "☀️ Claro";
-      btn.setAttribute("aria-label", tema === "claro" ? "Cambiar a tema oscuro" : "Cambiar a tema claro");
+      btn.setAttribute(
+        "aria-label",
+        tema === "claro"
+          ? "Cambiar a tema oscuro"
+          : "Cambiar a tema claro"
+      );
     });
   }
 
-  // Se aplica de inmediato (antes de pintar el body) para evitar parpadeos
   aplicarTema(temaGuardado());
 
   document.addEventListener("DOMContentLoaded", () => {
     actualizarBotones(temaGuardado());
 
-    document.querySelectorAll("[data-theme-toggle]").forEach((btn) => {
+    document.querySelectorAll("[data-theme-toggle]").forEach(btn => {
       btn.addEventListener("click", () => {
-        const nuevoTema = temaGuardado() === "claro" ? "oscuro" : "claro";
+        const nuevoTema =
+          temaGuardado() === "claro" ? "oscuro" : "claro";
+
         localStorage.setItem(THEME_KEY, nuevoTema);
         aplicarTema(nuevoTema);
         actualizarBotones(nuevoTema);
