@@ -143,7 +143,9 @@ async function procesarArchivoExcel(file, marca, sede) {
       medicos: fila[indices.medicos] || null,
       tipo_tratamiento: fila[indices.tipo_tratamiento] || null,
       aseguradora_pago_bolsillo: fila[indices.aseguradora_pago_bolsillo] || null,
-      honorario_medico: leerNumero(fila[indices.honorario_medico]),
+      honorario_medico: fila[indices.honorario_medico] === undefined || fila[indices.honorario_medico] === null || String(fila[indices.honorario_medico]).trim() === ""
+        ? null
+        : String(fila[indices.honorario_medico]).trim(),
       primera_vez: fila[indices.primera_vez] || null,
       subtotal: leerNumero(fila[indices.subtotal]),
       iva: leerNumero(fila[indices.iva]),
