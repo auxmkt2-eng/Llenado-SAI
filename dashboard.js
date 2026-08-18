@@ -227,7 +227,7 @@ const APARTADOS = [
   { key: "medicos", label: "Médicos", icon: "👨‍⚕️", tipo: "categorica" },
   { key: "tipoTratamiento", label: "Tipo de tratamiento", icon: "🧬", tipo: "categorica" },
   { key: "aseguradora", label: "Aseguradora y/o pago de bolsillo", icon: "💳", tipo: "categorica" },
-  { key: "honorarioMedico", label: "Honorario médico", icon: "💰", tipo: "numerica", moneda: true },
+  { key: "honorarioMedico", label: "Honorario médico", icon: "💰", tipo: "categorica" },
   { key: "primeraVez", label: "1º vez", icon: "🆕", tipo: "categorica" },
   { key: "tratamiento", label: "Tratamiento", icon: "🩺", tipo: "categorica" },
   { key: "diagnostico", label: "Diagnóstico", icon: "📋", tipo: "categorica" }
