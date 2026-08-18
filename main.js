@@ -23,6 +23,14 @@ function formatearMoneda(valor) {
   }).format(Number(valor || 0));
 }
 
+function formatearHonorarioMedico(valor) {
+  if (valor === null || valor === undefined || valor === "") return "—";
+
+  const texto = String(valor).trim();
+  const numero = Number(texto);
+  return texto !== "" && !isNaN(numero) ? formatearMoneda(numero) : texto;
+}
+
 function escapeHtml(value) {
   return String(value ?? "")
     .replace(/&/g, "&amp;")
@@ -182,7 +190,7 @@ function renderTable(rows) {
       <td>${escapeHtml(row.medicos || "—")}</td>
       <td>${escapeHtml(row.tipoTratamiento || "—")}</td>
       <td>${escapeHtml(row.aseguradora || "—")}</td>
-      <td class="money">${formatearMoneda(row.honorarioMedico)}</td>
+      <td class="money">${escapeHtml(formatearHonorarioMedico(row.honorarioMedico))}</td>
       <td>${escapeHtml(row.primeraVez || "—")}</td>
       <td class="money">${formatearMoneda(row.subtotal)}</td>
       <td class="money">${formatearMoneda(row.iva)}</td>
@@ -323,7 +331,7 @@ async function saveDrawer() {
     medicos: $("edMedicos").value.trim() || null,
     tipo_tratamiento: $("edTipoTratamiento").value.trim() || null,
     aseguradora_pago_bolsillo: $("edAseguradora").value.trim() || null,
-    honorario_medico: leerNumeroEd($("edHonorarioMedico").value),
+    honorario_medico: $("edHonorarioMedico").value.trim() || null,
     primera_vez: $("edPrimeraVez").value.trim() || null,
     subtotal: leerNumeroEd($("edSubtotal").value),
     iva: leerNumeroEd($("edIva").value),
