@@ -188,11 +188,17 @@ document.addEventListener("DOMContentLoaded", () => {
     const file = input.files[0];
     if (!file) return;
 
-    const marca = "SANARÉ";
-    const sede = currentUser && currentUser.role === "sede" ? currentUser.sede : "";
+    if (!currentUser || currentUser.role !== "admin") {
+      showToast("Solo el administrador puede importar archivos de Excel.", "error");
+      input.value = "";
+      return;
+    }
+
+    const marca = document.getElementById("importMarca")?.value || "SANARÉ";
+    const sede = document.getElementById("importSede")?.value || "";
 
     if (!sede) {
-      showToast("Solo los usuarios de sede pueden importar (el admin no tiene sede asignada).", "error");
+      showToast("Selecciona la sede a la que corresponde el archivo antes de importarlo.", "error");
       input.value = "";
       return;
     }

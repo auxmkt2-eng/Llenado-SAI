@@ -108,14 +108,22 @@ function applyRoleToUI() {
     );
   }
 
-  // Importar solamente para sedes; exportar solamente para administración.
+  // Importar y exportar solamente para administración.
   const btnImportar = document.getElementById("btnImportarExcel");
   const btnExportar = document.getElementById("btnExportarExcel");
+  const importSede = document.getElementById("importSede");
 
   if (btnImportar) {
     btnImportar.classList.toggle(
       "hidden",
-      currentUser.role === "admin"
+      currentUser.role !== "admin"
+    );
+  }
+
+  if (importSede) {
+    importSede.classList.toggle(
+      "hidden",
+      currentUser.role !== "admin"
     );
   }
 
