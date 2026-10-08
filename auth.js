@@ -33,6 +33,13 @@ const USERS = [
     role: "sede",
     sede: "Tijuana",
     displayName: "Sede Tijuana"
+  },
+  {
+    username: "santafe",
+    password: "santafe2026",
+    role: "sede",
+    sede: "Santa Fe",
+    displayName: "Sede Santa Fe"
   }
 ];
 
