@@ -1,7 +1,7 @@
 // ============================================================
 // 1) ESTADO — los datos reales se cargan desde Supabase
 // ============================================================
-const SEDES = ["", "Morelia", "Toluca", "Narvarte", "Tijuana"];
+const SEDES = ["", "Morelia", "Toluca", "Narvarte", "Tijuana", "Santa Fe"];
 
 function calcularTotal(subtotal, iva) {
   const sub = Number(subtotal) || 0;
