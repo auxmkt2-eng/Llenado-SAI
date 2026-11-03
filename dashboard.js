@@ -335,13 +335,28 @@ function distribucionCategorica(rows, key) {
   return Array.from(mapa.entries()).sort((a, b) => b[1] - a[1]);
 }
 
+function clavePaciente(valor) {
+  return normalizarTexto(valor).replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
+}
+
+function pacientesPorMedico(rows) {
+  const mapa = new Map();
+  rows.forEach(r => {
+    const medico = homologarMedico(r.medicos);
+    if (!mapa.has(medico)) mapa.set(medico, new Set());
+    const paciente = clavePaciente(r.paciente);
+    if (paciente) mapa.get(medico).add(paciente);
+  });
+  return mapa;
+}
+
 function montosPorDiagnostico(rows) {
   const mapa = new Map();
   rows.forEach(r => {
     const grupo = homologarDiagnostico(r.diagnostico);
     if (!mapa.has(grupo)) mapa.set(grupo, { montoTotal: 0, registrosConMonto: 0, pacientes: new Set() });
     const resumen = mapa.get(grupo);
-    const paciente = normalizarTexto(r.paciente).replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
+    const paciente = clavePaciente(r.paciente);
     if (paciente) resumen.pacientes.add(paciente);
     const bruto = r.montoServicio;
     if (bruto === null || bruto === undefined || String(bruto).trim() === "") return;
@@ -507,6 +522,7 @@ function renderDetalleApartado() {
     mostrarBuscador = dist.length > UMBRAL_GRAFICA_BARRAS;
     const variantes = new Map();
     const montos = campo.key === "diagnostico" ? montosPorDiagnostico(rows) : null;
+    const pacientesMedico = campo.key === "medicos" ? pacientesPorMedico(rows) : null;
     if (campo.key === "diagnostico" || campo.key === "medicos") {
       rows.forEach(r => {
         const grupo = campo.key === "diagnostico" ? homologarDiagnostico(r.diagnostico) : homologarMedico(r.medicos);
@@ -546,13 +562,15 @@ function renderDetalleApartado() {
       bodyHtml = `${notaMontos}<p class="muted apartado-tabla-nota">Este apartado tiene muchos valores distintos: se muestra como tabla clasificada por frecuencia (usa el buscador para filtrar).</p>`;
     }
 
-    tablaHeadHtml = `<thead><tr><th>${escapeHtml(campo.label)}</th><th>Registros</th>${campo.key === "diagnostico" ? "<th>Pacientes</th>" : ""}<th>%</th>${campo.key === "diagnostico" ? "<th>Con monto</th><th>Monto total del servicio</th><th>Ticket promedio</th>" : ""}</tr></thead>`;
+    tablaHeadHtml = `<thead><tr><th>${escapeHtml(campo.label)}</th><th>Registros</th>${campo.key === "diagnostico" || campo.key === "medicos" ? "<th>Pacientes</th>" : ""}<th>%</th>${campo.key === "diagnostico" ? "<th>Con monto</th><th>Monto total del servicio</th><th>Ticket promedio</th>" : ""}</tr></thead>`;
     tablaFilasHtml = dist.map(([val, count]) => {
       const resumen = montos && montos.get(val);
       const montoHtml = resumen
         ? `<td>${resumen.registrosConMonto}</td><td>${resumen.registrosConMonto ? formatearMoneda(resumen.montoTotal) : "—"}</td><td>${resumen.registrosConMonto ? formatearMoneda(resumen.montoTotal / resumen.registrosConMonto) : "—"}</td>`
         : "";
-      return `<tr><td>${escapeHtml(val)}</td><td>${count}</td>${resumen ? `<td>${resumen.pacientes.size}</td>` : ""}<td>${totalReg ? Math.round((count / totalReg) * 100) : 0}%</td>${montoHtml}</tr>`;
+      const pacientesHtml = resumen ? `<td>${resumen.pacientes.size}</td>`
+        : pacientesMedico ? `<td>${(pacientesMedico.get(val) || new Set()).size}</td>` : "";
+      return `<tr><td>${escapeHtml(val)}</td><td>${count}</td>${pacientesHtml}<td>${totalReg ? Math.round((count / totalReg) * 100) : 0}%</td>${montoHtml}</tr>`;
     }).join("");
   }
 
