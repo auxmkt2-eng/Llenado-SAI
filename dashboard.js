@@ -294,6 +294,7 @@ function homologarDiagnostico(valor) {
   if (/\blinfoma\b/.test(texto)) return "LINFOMA";
   if (/\bmieloma\b/.test(texto)) return "MIELOMA MÚLTIPLE";
   if (/\bmelanoma\b/.test(texto)) return "MELANOMA";
+  if (/\bneuritis\s*optica\s+recurrente\b/.test(texto)) return "NEURITIS ÓPTICA RECURRENTE";
 
   // Equivalencias frecuentes fuera de oncología; las demás enfermedades solo
   // se unifican por tildes, puntuación y espacios para evitar falsos grupos.
