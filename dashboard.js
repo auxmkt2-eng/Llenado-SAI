@@ -252,7 +252,10 @@ function homologarDiagnostico(valor) {
   const texto = normalizarTexto(original)
     .replace(/\bca\.(?=\s)/g, "ca")
     .replace(/[^a-z0-9\s]/g, " ")
-    .replace(/\s+/g, " ").trim();
+    .replace(/\s+/g, " ").trim()
+    // En los registros observados, "con AT pulmonar" acompaña al diagnóstico
+    // de mama; no representa aquí un segundo cáncer primario.
+    .replace(/\bcon at pulmonar\b/g, " ").replace(/\s+/g, " ").trim();
 
   // Un registro que combina cáncer con otra enfermedad no se asigna a una sola.
   if (/\b(y|mas)\b/.test(texto) && /\b(diabetes|leucemia|linfoma|mieloma|insuficiencia|enfermedad renal)\b/.test(texto)) return original;
