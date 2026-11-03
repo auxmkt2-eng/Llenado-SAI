@@ -318,6 +318,22 @@ function distribucionCategorica(rows, key) {
   return Array.from(mapa.entries()).sort((a, b) => b[1] - a[1]);
 }
 
+function montosPorDiagnostico(rows) {
+  const mapa = new Map();
+  rows.forEach(r => {
+    const grupo = homologarDiagnostico(r.diagnostico);
+    if (!mapa.has(grupo)) mapa.set(grupo, { montoTotal: 0, registrosConMonto: 0 });
+    const bruto = r.montoServicio;
+    if (bruto === null || bruto === undefined || String(bruto).trim() === "") return;
+    const monto = Number(bruto);
+    if (!Number.isFinite(monto)) return;
+    const resumen = mapa.get(grupo);
+    resumen.montoTotal += monto;
+    resumen.registrosConMonto++;
+  });
+  return mapa;
+}
+
 function estadisticasNumericas(rows, key) {
   const valores = rows
     .map(r => r[key])
@@ -471,6 +487,7 @@ function renderDetalleApartado() {
     const totalReg = dist.reduce((s, [, c]) => s + c, 0);
     mostrarBuscador = dist.length > UMBRAL_GRAFICA_BARRAS;
     const variantes = new Map();
+    const montos = campo.key === "diagnostico" ? montosPorDiagnostico(rows) : null;
     if (campo.key === "diagnostico") {
       rows.forEach(r => {
         const grupo = homologarDiagnostico(r.diagnostico);
@@ -489,11 +506,15 @@ function renderDetalleApartado() {
 
     subtitulo = `${totalReg} registro(s) analizado(s) · ${dist.length} valor(es) distinto(s)${apartadoDetBuscarTexto ? " (filtrado)" : ""}`;
 
+    const notaMontos = campo.key === "diagnostico"
+      ? `<p class="muted apartado-tabla-nota">El ticket promedio se calcula como monto total del servicio ÷ registros con monto. Los registros sin monto no entran en el promedio.</p>`
+      : "";
+
     if (!dist.length) {
       bodyHtml = `<p class="muted">Sin resultados para ese filtro.</p>`;
     } else if (dist.length <= UMBRAL_GRAFICA_BARRAS) {
       const maxC = dist[0][1];
-      bodyHtml = `
+      bodyHtml = `${notaMontos}
         <div class="apartado-bars">
           ${dist.map(([val, count], i) => `
             <div class="apartado-bar-row">
@@ -503,16 +524,20 @@ function renderDetalleApartado() {
             </div>`).join("")}
         </div>`;
     } else {
-      bodyHtml = `<p class="muted apartado-tabla-nota">Este apartado tiene muchos valores distintos: se muestra como tabla clasificada por frecuencia (usa el buscador para filtrar).</p>`;
+      bodyHtml = `${notaMontos}<p class="muted apartado-tabla-nota">Este apartado tiene muchos valores distintos: se muestra como tabla clasificada por frecuencia (usa el buscador para filtrar).</p>`;
     }
 
-    tablaHeadHtml = `<thead><tr><th>${escapeHtml(campo.label)}</th><th>Registros</th><th>%</th>${campo.key === "diagnostico" ? "<th>Textos originales</th>" : ""}</tr></thead>`;
+    tablaHeadHtml = `<thead><tr><th>${escapeHtml(campo.label)}</th><th>Registros</th><th>%</th>${campo.key === "diagnostico" ? "<th>Con monto</th><th>Monto total del servicio</th><th>Ticket promedio</th><th>Textos originales</th>" : ""}</tr></thead>`;
     tablaFilasHtml = dist.map(([val, count]) => {
       const originales = variantes.get(val);
+      const resumen = montos && montos.get(val);
+      const montoHtml = resumen
+        ? `<td>${resumen.registrosConMonto}</td><td>${resumen.registrosConMonto ? formatearMoneda(resumen.montoTotal) : "—"}</td><td>${resumen.registrosConMonto ? formatearMoneda(resumen.montoTotal / resumen.registrosConMonto) : "—"}</td>`
+        : "";
       const detalle = campo.key === "diagnostico" && originales
         ? `<td><details><summary>${originales.size} variante(s)</summary><ul>${Array.from(originales.entries()).sort((a, b) => b[1] - a[1]).map(([texto, n]) => `<li>${escapeHtml(texto)} (${n})</li>`).join("")}</ul></details></td>`
         : "";
-      return `<tr><td>${escapeHtml(val)}</td><td>${count}</td><td>${totalReg ? Math.round((count / totalReg) * 100) : 0}%</td>${detalle}</tr>`;
+      return `<tr><td>${escapeHtml(val)}</td><td>${count}</td><td>${totalReg ? Math.round((count / totalReg) * 100) : 0}%</td>${montoHtml}${detalle}</tr>`;
     }).join("");
   }
 
