@@ -243,6 +243,64 @@ function apartadoValorCelda(valor) {
   return String(valor).trim().toUpperCase() || "SIN DATO";
 }
 
+// La homologación es exclusiva del dashboard. El diagnóstico capturado y las
+// exportaciones de registros conservan el texto original.
+function homologarDiagnostico(valor) {
+  const original = apartadoValorCelda(valor);
+  if (original === "SIN DATO") return original;
+
+  const texto = normalizarTexto(original)
+    .replace(/\bca\.(?=\s)/g, "ca")
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ").trim();
+
+  // Un registro que combina cáncer con otra enfermedad no se asigna a una sola.
+  if (/\b(y|mas)\b/.test(texto) && /\b(diabetes|leucemia|linfoma|mieloma|insuficiencia|enfermedad renal)\b/.test(texto)) return original;
+
+  const cancer = /\b(cancer|carcinoma|adenocarcinoma|neoplasia maligna|tumor maligno|ca)\b/.test(texto);
+  if (cancer) {
+    const sitios = [
+      [/\b(mama|mamario|mamaria|seno|senos)\b/, "CÁNCER DE MAMA"],
+      [/\b(pulmon|pulmonar|bronco|bronquial)\b/, "CÁNCER DE PULMÓN"],
+      [/\b(colon|colorrectal|colorectal|recto)\b/, "CÁNCER COLORRECTAL"],
+      [/\b(prostata|prostatico|prostatica)\b/, "CÁNCER DE PRÓSTATA"],
+      [/\b(cervix|cervical|cervicouterino|cervico uterino|cuello uterino|cuello de utero)\b/, "CÁNCER CERVICOUTERINO"],
+      [/\b(ovario|ovarico|ovarica)\b/, "CÁNCER DE OVARIO"],
+      [/\b(utero|uterino|uterina|endometrio|endometrial)\b/, "CÁNCER DE ÚTERO"],
+      [/\b(estomago|gastrico|gastrica)\b/, "CÁNCER GÁSTRICO"],
+      [/\b(pancreas|pancreatico|pancreatica)\b/, "CÁNCER DE PÁNCREAS"],
+      [/\b(higado|hepatico|hepatica|hepatocelular)\b/, "CÁNCER DE HÍGADO"],
+      [/\b(rinon|renal|rinal)\b/, "CÁNCER RENAL"],
+      [/\b(vejiga|vesical)\b/, "CÁNCER DE VEJIGA"],
+      [/\b(tiroides|tiroideo|tiroidea)\b/, "CÁNCER DE TIROIDES"],
+      [/\b(piel|cutaneo|cutanea)\b/, "CÁNCER DE PIEL"],
+      [/\b(cabeza y cuello|orofaringe|laringe|faringe)\b/, "CÁNCER DE CABEZA Y CUELLO"],
+      [/\b(esofago|esofagico|esofagica)\b/, "CÁNCER DE ESÓFAGO"],
+      [/\b(testiculo|testicular)\b/, "CÁNCER TESTICULAR"],
+      [/\b(cerebro|cerebral|encefalo)\b/, "CÁNCER CEREBRAL"]
+    ];
+    const encontrados = sitios.filter(([patron]) => patron.test(texto));
+    if (encontrados.length === 2 && /\b(cuello uterino|cervico uterino)\b/.test(texto) &&
+        encontrados.some(([, nombre]) => nombre === "CÁNCER CERVICOUTERINO") &&
+        encontrados.some(([, nombre]) => nombre === "CÁNCER DE ÚTERO")) return "CÁNCER CERVICOUTERINO";
+    if (encontrados.length === 1) return encontrados[0][1];
+    if (encontrados.length > 1) return original;
+  }
+
+  if (/\bleucemia\b/.test(texto)) return "LEUCEMIA";
+  if (/\blinfoma\b/.test(texto)) return "LINFOMA";
+  if (/\bmieloma\b/.test(texto)) return "MIELOMA MÚLTIPLE";
+  if (/\bmelanoma\b/.test(texto)) return "MELANOMA";
+
+  // Equivalencias frecuentes fuera de oncología; las demás enfermedades solo
+  // se unifican por tildes, puntuación y espacios para evitar falsos grupos.
+  if (/\b(dm2|diabetes mellitus tipo 2|diabetes tipo 2)\b/.test(texto)) return "DIABETES MELLITUS TIPO 2";
+  if (/\b(dm1|diabetes mellitus tipo 1|diabetes tipo 1)\b/.test(texto)) return "DIABETES MELLITUS TIPO 1";
+  if (/\b(erc|enfermedad renal cronica|insuficiencia renal cronica)\b/.test(texto)) return "ENFERMEDAD RENAL CRÓNICA";
+
+  return texto.toUpperCase();
+}
+
 function apartadoFormatoNumero(valor, campo) {
   if (valor === null || valor === undefined || isNaN(valor)) return "—";
   if (campo.moneda) return formatearMoneda(valor);
@@ -254,7 +312,7 @@ function apartadoFormatoNumero(valor, campo) {
 function distribucionCategorica(rows, key) {
   const mapa = new Map();
   rows.forEach(r => {
-    const val = apartadoValorCelda(r[key]);
+    const val = key === "diagnostico" ? homologarDiagnostico(r[key]) : apartadoValorCelda(r[key]);
     mapa.set(val, (mapa.get(val) || 0) + 1);
   });
   return Array.from(mapa.entries()).sort((a, b) => b[1] - a[1]);
@@ -412,10 +470,21 @@ function renderDetalleApartado() {
     let dist = distribucionCategorica(rows, campo.key);
     const totalReg = dist.reduce((s, [, c]) => s + c, 0);
     mostrarBuscador = dist.length > UMBRAL_GRAFICA_BARRAS;
+    const variantes = new Map();
+    if (campo.key === "diagnostico") {
+      rows.forEach(r => {
+        const grupo = homologarDiagnostico(r.diagnostico);
+        if (!variantes.has(grupo)) variantes.set(grupo, new Map());
+        const original = apartadoValorCelda(r.diagnostico);
+        const mapa = variantes.get(grupo);
+        mapa.set(original, (mapa.get(original) || 0) + 1);
+      });
+    }
 
     if (apartadoDetBuscarTexto) {
       const q = normalizarTexto(apartadoDetBuscarTexto);
-      dist = dist.filter(([v]) => normalizarTexto(v).includes(q));
+      dist = dist.filter(([v]) => normalizarTexto(v).includes(q) ||
+        (variantes.get(v) && Array.from(variantes.get(v).keys()).some(original => normalizarTexto(original).includes(q))));
     }
 
     subtitulo = `${totalReg} registro(s) analizado(s) · ${dist.length} valor(es) distinto(s)${apartadoDetBuscarTexto ? " (filtrado)" : ""}`;
@@ -437,8 +506,14 @@ function renderDetalleApartado() {
       bodyHtml = `<p class="muted apartado-tabla-nota">Este apartado tiene muchos valores distintos: se muestra como tabla clasificada por frecuencia (usa el buscador para filtrar).</p>`;
     }
 
-    tablaHeadHtml = `<thead><tr><th>${escapeHtml(campo.label)}</th><th>Registros</th><th>%</th></tr></thead>`;
-    tablaFilasHtml = dist.map(([val, count]) => `<tr><td>${escapeHtml(val)}</td><td>${count}</td><td>${totalReg ? Math.round((count / totalReg) * 100) : 0}%</td></tr>`).join("");
+    tablaHeadHtml = `<thead><tr><th>${escapeHtml(campo.label)}</th><th>Registros</th><th>%</th>${campo.key === "diagnostico" ? "<th>Textos originales</th>" : ""}</tr></thead>`;
+    tablaFilasHtml = dist.map(([val, count]) => {
+      const originales = variantes.get(val);
+      const detalle = campo.key === "diagnostico" && originales
+        ? `<td><details><summary>${originales.size} variante(s)</summary><ul>${Array.from(originales.entries()).sort((a, b) => b[1] - a[1]).map(([texto, n]) => `<li>${escapeHtml(texto)} (${n})</li>`).join("")}</ul></details></td>`
+        : "";
+      return `<tr><td>${escapeHtml(val)}</td><td>${count}</td><td>${totalReg ? Math.round((count / totalReg) * 100) : 0}%</td>${detalle}</tr>`;
+    }).join("");
   }
 
   cont.innerHTML = `
