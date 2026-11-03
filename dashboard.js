@@ -527,17 +527,13 @@ function renderDetalleApartado() {
       bodyHtml = `${notaMontos}<p class="muted apartado-tabla-nota">Este apartado tiene muchos valores distintos: se muestra como tabla clasificada por frecuencia (usa el buscador para filtrar).</p>`;
     }
 
-    tablaHeadHtml = `<thead><tr><th>${escapeHtml(campo.label)}</th><th>Registros</th><th>%</th>${campo.key === "diagnostico" ? "<th>Con monto</th><th>Monto total del servicio</th><th>Ticket promedio</th><th>Textos originales</th>" : ""}</tr></thead>`;
+    tablaHeadHtml = `<thead><tr><th>${escapeHtml(campo.label)}</th><th>Registros</th><th>%</th>${campo.key === "diagnostico" ? "<th>Con monto</th><th>Monto total del servicio</th><th>Ticket promedio</th>" : ""}</tr></thead>`;
     tablaFilasHtml = dist.map(([val, count]) => {
-      const originales = variantes.get(val);
       const resumen = montos && montos.get(val);
       const montoHtml = resumen
         ? `<td>${resumen.registrosConMonto}</td><td>${resumen.registrosConMonto ? formatearMoneda(resumen.montoTotal) : "—"}</td><td>${resumen.registrosConMonto ? formatearMoneda(resumen.montoTotal / resumen.registrosConMonto) : "—"}</td>`
         : "";
-      const detalle = campo.key === "diagnostico" && originales
-        ? `<td><details><summary>${originales.size} variante(s)</summary><ul>${Array.from(originales.entries()).sort((a, b) => b[1] - a[1]).map(([texto, n]) => `<li>${escapeHtml(texto)} (${n})</li>`).join("")}</ul></details></td>`
-        : "";
-      return `<tr><td>${escapeHtml(val)}</td><td>${count}</td><td>${totalReg ? Math.round((count / totalReg) * 100) : 0}%</td>${montoHtml}${detalle}</tr>`;
+      return `<tr><td>${escapeHtml(val)}</td><td>${count}</td><td>${totalReg ? Math.round((count / totalReg) * 100) : 0}%</td>${montoHtml}</tr>`;
     }).join("");
   }
 
