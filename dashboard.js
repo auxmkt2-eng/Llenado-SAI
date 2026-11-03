@@ -243,8 +243,8 @@ function apartadoValorCelda(valor) {
   return String(valor).trim().toUpperCase() || "SIN DATO";
 }
 
-// La homologación es exclusiva del dashboard. El diagnóstico capturado y las
-// exportaciones de registros conservan el texto original.
+// La homologación es exclusiva del dashboard. Los registros capturados y sus
+// exportaciones conservan el texto original.
 function homologarDiagnostico(valor) {
   const original = apartadoValorCelda(valor);
   if (original === "SIN DATO") return original;
@@ -305,6 +305,18 @@ function homologarDiagnostico(valor) {
   return texto.toUpperCase();
 }
 
+function homologarMedico(valor) {
+  const original = apartadoValorCelda(valor);
+  if (original === "SIN DATO") return original;
+  // Solo se juntan nombres completos que coinciden tras retirar tratamientos,
+  // tildes, signos y espacios. Una inicial o apellido faltante no basta.
+  const nombre = normalizarTexto(original)
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ").trim()
+    .replace(/^(?:dr|dra|dr a|doctor|doctora|medico|medica|m c)\s+/, "");
+  return nombre.toUpperCase() || "SIN DATO";
+}
+
 function apartadoFormatoNumero(valor, campo) {
   if (valor === null || valor === undefined || isNaN(valor)) return "—";
   if (campo.moneda) return formatearMoneda(valor);
@@ -316,7 +328,8 @@ function apartadoFormatoNumero(valor, campo) {
 function distribucionCategorica(rows, key) {
   const mapa = new Map();
   rows.forEach(r => {
-    const val = key === "diagnostico" ? homologarDiagnostico(r[key]) : apartadoValorCelda(r[key]);
+    const val = key === "diagnostico" ? homologarDiagnostico(r[key])
+      : key === "medicos" ? homologarMedico(r[key]) : apartadoValorCelda(r[key]);
     mapa.set(val, (mapa.get(val) || 0) + 1);
   });
   return Array.from(mapa.entries()).sort((a, b) => b[1] - a[1]);
@@ -494,11 +507,11 @@ function renderDetalleApartado() {
     mostrarBuscador = dist.length > UMBRAL_GRAFICA_BARRAS;
     const variantes = new Map();
     const montos = campo.key === "diagnostico" ? montosPorDiagnostico(rows) : null;
-    if (campo.key === "diagnostico") {
+    if (campo.key === "diagnostico" || campo.key === "medicos") {
       rows.forEach(r => {
-        const grupo = homologarDiagnostico(r.diagnostico);
+        const grupo = campo.key === "diagnostico" ? homologarDiagnostico(r.diagnostico) : homologarMedico(r.medicos);
         if (!variantes.has(grupo)) variantes.set(grupo, new Map());
-        const original = apartadoValorCelda(r.diagnostico);
+        const original = apartadoValorCelda(r[campo.key]);
         const mapa = variantes.get(grupo);
         mapa.set(original, (mapa.get(original) || 0) + 1);
       });
