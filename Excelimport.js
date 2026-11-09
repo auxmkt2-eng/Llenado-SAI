@@ -14,6 +14,7 @@ const MAPA_COLUMNAS_RAW = {
   "sexo": "sexo",
   "estatus de paciente": "estatus_paciente",
   "médicos": "medicos",
+  "kam": "kam",
   "tipo de tratamiento": "tipo_tratamiento",
   "aseguradora y/o pago de bolsillo": "aseguradora_pago_bolsillo",
   "honorario médico": "honorario_medico",
@@ -141,6 +142,7 @@ async function procesarArchivoExcel(file, marca, sede) {
       sexo: fila[indices.sexo] || null,
       estatus_paciente: fila[indices.estatus_paciente] || null,
       medicos: fila[indices.medicos] || null,
+      kam: fila[indices.kam] || null,
       tipo_tratamiento: fila[indices.tipo_tratamiento] || null,
       aseguradora_pago_bolsillo: fila[indices.aseguradora_pago_bolsillo] || null,
       honorario_medico: fila[indices.honorario_medico] === undefined || fila[indices.honorario_medico] === null || String(fila[indices.honorario_medico]).trim() === ""
@@ -255,6 +257,7 @@ function exportarRegistrosAExcel() {
     "Sexo": r.sexo || "",
     "Estatus de Paciente": r.estatusPaciente || "",
     "Médicos": r.medicos || "",
+    "KAM": r.kam || "",
     "Tipo de tratamiento": r.tipoTratamiento || "",
     "Aseguradora y/o pago de bolsillo": r.aseguradora || "",
     "Honorario médico": r.honorarioMedico ?? "",

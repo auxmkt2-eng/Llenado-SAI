@@ -124,7 +124,7 @@ function applyFilters() {
 
   if (text) {
     rows = rows.filter(r =>
-      [r.folio, r.paciente, r.medicos, r.diagnostico]
+      [r.folio, r.paciente, r.medicos, r.kam, r.diagnostico]
         .join(" ")
         .toLowerCase()
         .includes(text)
@@ -188,6 +188,7 @@ function renderTable(rows) {
       <td>${escapeHtml(row.sexo || "—")}</td>
       <td>${escapeHtml(row.estatusPaciente || "—")}</td>
       <td>${escapeHtml(row.medicos || "—")}</td>
+      <td>${escapeHtml(row.kam || "—")}</td>
       <td>${escapeHtml(row.tipoTratamiento || "—")}</td>
       <td>${escapeHtml(row.aseguradora || "—")}</td>
       <td class="money">${escapeHtml(formatearHonorarioMedico(row.honorarioMedico))}</td>
@@ -228,7 +229,7 @@ const CAMPOS_EDITABLES_DETALLE = [
   "edHoraIngreso", "edHoraSalida", "edViaAcceso", "edTiempoInfusion",
   "edCiclo", "edNumeroCiclos", "edPaciente",
   "edDelegacion", "edEdad", "edSexo",
-  "edEstatusPaciente", "edMedicos", "edTipoTratamiento",
+  "edEstatusPaciente", "edMedicos", "edKam", "edTipoTratamiento",
   "edAseguradora", "edHonorarioMedico",
   "edPrimeraVez", "edSubtotal", "edIva", "edMontoServicio",
   "edTratamiento", "edDiagnostico", "edNotas", "edSede"
@@ -266,6 +267,7 @@ function openDrawer(id) {
   $("edSexo").value = selectedRow.sexo || "";
   $("edEstatusPaciente").value = selectedRow.estatusPaciente || "";
   $("edMedicos").value = selectedRow.medicos || "";
+  $("edKam").value = selectedRow.kam || "";
   $("edTipoTratamiento").value = selectedRow.tipoTratamiento || "";
   $("edAseguradora").value = selectedRow.aseguradora || "";
   $("edHonorarioMedico").value = selectedRow.honorarioMedico ?? "";
@@ -329,6 +331,7 @@ async function saveDrawer() {
     sexo: $("edSexo").value.trim() || null,
     estatus_paciente: $("edEstatusPaciente").value.trim() || null,
     medicos: $("edMedicos").value.trim() || null,
+    kam: $("edKam").value.trim() || null,
     tipo_tratamiento: $("edTipoTratamiento").value.trim() || null,
     aseguradora_pago_bolsillo: $("edAseguradora").value.trim() || null,
     honorario_medico: $("edHonorarioMedico").value.trim() || null,
@@ -483,6 +486,7 @@ function mapRegistroSupabase(r) {
     sexo: r.sexo || "",
     estatusPaciente: r.estatus_paciente || "",
     medicos: r.medicos || "",
+    kam: r.kam || "",
     tipoTratamiento: r.tipo_tratamiento || "",
     aseguradora: r.aseguradora_pago_bolsillo || "",
     honorarioMedico: r.honorario_medico,
