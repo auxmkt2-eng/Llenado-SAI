@@ -37,21 +37,47 @@ const CATEGORIAS_CANCER = [
 function categoriaCancer(diagnostico) {
   const homologado = homologarDiagnostico(diagnostico);
   const texto = normalizarTexto(diagnostico);
+  if (/\bcondrosarcoma\b/.test(texto)) return "Sarcomas / Tejidos Blandos / Óseo";
+  if (/\benfermedad trofoblastica gestacional\b/.test(texto)) return "Enfermedad Trofoblástica Gestacional";
+  if (/\b(tumor germinal|teratoma inmaduro)\b/.test(texto) && /\b(retroperitoneal|retroperitonial)\b/.test(texto)) return "Tumor Germinal Extragonadal / Retroperitoneal";
+  if (/\b(tumor|carcinoma) neuroendocrino\b/.test(texto)) return "Neoplasia Neuroendocrina (Sitio no Indicado)";
   if (!esDiagnosticoOncologico(texto) && !esDiagnosticoOncologico(homologado)) return "";
   // Las metástasis no cambian el sitio del tumor primario. Ante una frase
   // explícita de diseminación, se ignora el destino después de esa frase.
-  const primario = texto.replace(/\b(?:con )?(?:metastasis|metastasico|metastasica|mts)\b.*$/, "").trim() || texto;
+  const primario = texto
+    .replace(/\b(?:con )?(?:metastasis|metastasico|metastasica|metastico|metastica|mts)\b.*$/, "")
+    .replace(/\bcon (?:actividad tumoral|at pulmonar)\b.*$/, "")
+    .replace(/\brecurrente a\b.*$/, "").trim() || texto;
   if (/\bcolon\b/.test(primario) && /\brecto\b/.test(primario)) return "Cáncer / Neoplasia de Recto / Colorrectal";
+  if (/\bcolon\b/.test(primario) && /\bapendice\b/.test(primario)) return "Cáncer / Neoplasia de Colón";
   // Algunas familias tienen prioridad sobre el órgano mencionado, como en
   // "sarcoma de útero", "linfoma cutáneo" y "melanoma ocular".
   if (/\b(sarcoma|osteosarcoma|rabdomiosarcoma|ewing)\b/.test(primario)) return "Sarcomas / Tejidos Blandos / Óseo";
   if (/\b(leucemia|linfoma|mieloma|hodgkin)\b/.test(primario)) return "Cáncer Hematológico (Leucemia / Linfoma / Mieloma)";
+  if (/\bcancer hematologico\b/.test(primario)) return "Cáncer Hematológico (Leucemia / Linfoma / Mieloma)";
   if (/\bmelanoma\b/.test(primario) && /\b(ocular|ojo|uveal|retina)\b/.test(primario)) return "Cáncer de Ojo";
   if (/\bseno paranasal\b/.test(primario)) return "Cáncer de Cabeza y Cuello";
   if (/\b(colangiocarcinoma|vias? biliares?|conductos? biliares?)\b/.test(primario)) return "Colangiocarcinoma / Vías Biliares / Vesícula";
   if (/\bpelvis renal\b/.test(primario)) return "Cáncer de Vías Urinarias / Vejiga / Urotelio";
   const encontrados = CATEGORIAS_CANCER.filter(({ patron }) => patron.test(primario));
   if (encontrados.length === 1) return encontrados[0].nombre;
-  if (encontrados.length > 1) return "Otros cánceres / Sitios múltiples";
-  return "Otros cánceres / Sitio no especificado";
+  if (encontrados.length > 1) return apartadoValorCelda(diagnostico);
+  if (/\badenocarcinoma\b/.test(primario)) return "Adenocarcinoma (Sitio no Indicado)";
+  return apartadoValorCelda(diagnostico);
+}
+
+function categoriaDiagnostico(diagnostico) {
+  const cancer = categoriaCancer(diagnostico);
+  if (cancer) return cancer;
+  const texto = normalizarTexto(diagnostico);
+  if (!texto) return "Sin Dato";
+  if (/\b(osteoporosis|osteopenia)\b/.test(texto) && /\b(anemia|ferropenia)\b/.test(texto)) return "Anemia y Osteoporosis";
+  if (/\b(osteoporosis|osteopenia)\b/.test(texto)) return "Osteoporosis / Osteopenia";
+  if (/\b(anemia|ferropenia)\b/.test(texto)) return "Anemia / Ferropenia";
+  if (/\b(alzheimer|demencia)\b/.test(texto)) return "Demencia / Alzheimer";
+  if (/\b(neuritis\s*optica|neuritisoptica|neutris optica|neuromielitis optica)\b/.test(texto)) return "Neuritis / Neuromielitis Óptica";
+  if (/\bartritis reumatoide\b/.test(texto)) return "Artritis Reumatoide";
+  if (/\benfermedad pulmonar intersticial\b/.test(texto)) return "Enfermedad Pulmonar Intersticial";
+  if (/\btelangiectasia hemorragica hereditaria\b/.test(texto)) return "Telangiectasia Hemorrágica Hereditaria";
+  return apartadoValorCelda(diagnostico);
 }

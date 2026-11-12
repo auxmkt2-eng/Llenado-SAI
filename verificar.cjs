@@ -43,4 +43,22 @@ const montos = context.montosPorDiagnostico([
 const mama = montos.get('Cáncer / Neoplasia de Mama');
 if (mama.montoTotal !== 300 || mama.registrosConMonto !== 3 || mama.montoTotal / mama.registrosConMonto !== 100) throw Error('Monto o ticket de mama incorrecto');
 if (montos.get('Cáncer / Neoplasia de Ovario').montoTotal !== 50 || montos.get('Cáncer Hematológico (Leucemia / Linfoma / Mieloma)').registrosConMonto !== 0) throw Error('Montos de otros diagnósticos incorrectos');
+const nuevos = [
+  ['CONDROSARCOMA CONVENCIONAL TIPO HIALINO', 'Sarcomas / Tejidos Blandos / Óseo'],
+  ['ENFERMEDAD TROFOBLASTICA GESTACIONAL METASTASICA', 'Enfermedad Trofoblástica Gestacional'],
+  ['TUMOR GERMINAL RETROPERITONEAL, NO SEMINOMA', 'Tumor Germinal Extragonadal / Retroperitoneal'],
+  ['TUMOR NEUROENDOCRINO DE CELULAS PEQUEÑAS', 'Neoplasia Neuroendocrina (Sitio no Indicado)'],
+  ['OSTEOPOROSIS', 'Osteoporosis / Osteopenia'],
+  ['ANEMIA FERROPÉNICA', 'Anemia / Ferropenia'],
+  ['NEURITISOPTICA RECURRENTE', 'Neuritis / Neuromielitis Óptica'],
+  ['CANCER DE OVARIO METASTICO A PERITONEO', 'Cáncer / Neoplasia de Ovario'],
+  ['ADENOCARCINOMA DE COLON DERECHO (APÉNDICE)', 'Cáncer / Neoplasia de Colón'],
+  ['CANCER DE MAMA TRIPLE NEGATIVO CON AT PULMONAR', 'Cáncer / Neoplasia de Mama'],
+  ['CANCER HEMATOLOGICO', 'Cáncer Hematológico (Leucemia / Linfoma / Mieloma)']
+];
+for (const [diagnostico, categoria] of nuevos) {
+  if (context.categoriaDiagnostico(diagnostico) !== categoria) throw Error(`${diagnostico} no quedó en ${categoria}`);
+}
+const reparto = context.distribucionCategorica(nuevos.map(([diagnostico]) => ({ diagnostico })), 'diagnostico');
+if (reparto.reduce((n, [, cuenta]) => n + cuenta, 0) !== nuevos.length || reparto.some(([nombre]) => nombre.startsWith('Otros'))) throw Error('Persisten diagnósticos genéricos');
 console.log(`${cases.length} casos, distribución, montos y ticket promedio correctos`);
