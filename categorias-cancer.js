@@ -81,3 +81,24 @@ function categoriaDiagnostico(diagnostico) {
   if (/\btelangiectasia hemorragica hereditaria\b/.test(texto)) return "Telangiectasia Hemorrágica Hereditaria";
   return apartadoValorCelda(diagnostico);
 }
+
+// Etiquetas del resumen de casos: conserva la estructura de la tabla de
+// referencia y deja los diagnósticos no oncológicos en una sola categoría.
+function categoriaCasoSanare(diagnostico) {
+  const texto = normalizarTexto(diagnostico);
+  const cancer = categoriaCancer(diagnostico);
+  if (!cancer && /\b(preventiv[ao]|hereditari[ao]|brca[12]?)\b/.test(texto)) return "Cáncer Preventivo / Hereditario";
+  if (!cancer) return "Otros Diagnósticos";
+  const etiquetas = {
+    "Cáncer Genitourinario Masculino (Próstata / Pene / Testículo)": /\b(pene|penian[ao])\b/.test(texto)
+      ? "Cáncer / Neoplasia de Pene" : /\b(test[íi]culo|testicular)\b/.test(texto)
+      ? "Cáncer / Neoplasia de Testículo" : "Cáncer / Neoplasia de Próstata",
+    "Cáncer Hematológico (Leucemia / Linfoma / Mieloma)": /\blinfoma\b/.test(texto) ? "Linfoma"
+      : /\bleucemia\b/.test(texto) ? "Leucemia"
+      : /\bmieloma\b/.test(texto) ? "Mieloma" : "Cáncer Hematológico",
+    "Colangiocarcinoma / Vías Biliares / Vesícula": "Colangiocarcinoma / Vías Biliares",
+    "Cáncer / Neoplasia de Tiroides": "Cáncer / Neoplasia de Tiroides",
+    "Cáncer Ginecológico (Endometrio / Cérvix / Vagina / Vulva)": "Cáncer Ginecológico (Endometrio/Cérvix/Vagina/Vulva)"
+  };
+  return etiquetas[cancer] || cancer;
+}

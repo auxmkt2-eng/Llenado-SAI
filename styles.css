@@ -505,6 +505,9 @@ html[data-theme="light"] .toast.error { border-color: rgba(220,38,38,.3); backgr
 
 .apartado-tabla-nota { margin: 0 0 .8rem; }
 .apartado-table-wrap { max-height: 380px; }
+.casos-resumen-table thead th:first-child, .casos-resumen-table tbody td:first-child, .casos-resumen-table tfoot th:first-child { text-align: left; }
+.casos-resumen-table th:last-child, .casos-resumen-table td:last-child { text-align: right; font-variant-numeric: tabular-nums; }
+.casos-resumen-table tfoot { font-weight: 700; background: rgba(78,163,255,.1); }
 
 
 /* Tema claro para el dashboard ejecutivo */
