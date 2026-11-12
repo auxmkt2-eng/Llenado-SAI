@@ -269,6 +269,7 @@ function homologarDiagnostico(valor) {
       [/\b(pulmon|pulmonar|bronco|bronquial)\b/, "CÁNCER DE PULMÓN"],
       [/\b(colon|colorrectal|colorectal|recto)\b/, "CÁNCER COLORRECTAL"],
       [/\b(prostata|prostatico|prostatica)\b/, "CÁNCER DE PRÓSTATA"],
+      [/\b(pene|peniano|peniana)\b/, "CÁNCER DE PENE"],
       [/\b(cervix|cervical|cervicouterino|cervico uterino|cuello uterino|cuello de utero)\b/, "CÁNCER CERVICOUTERINO"],
       [/\b(ovario|ovarico|ovarica)\b/, "CÁNCER DE OVARIO"],
       [/\b(utero|uterino|uterina|endometrio|endometrial)\b/, "CÁNCER DE ÚTERO"],
