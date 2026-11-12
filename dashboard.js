@@ -230,7 +230,7 @@ const APARTADOS = [
   { key: "honorarioMedico", label: "Honorario médico", icon: "💰", tipo: "categorica" },
   { key: "primeraVez", label: "1º vez", icon: "🆕", tipo: "categorica" },
   { key: "tratamiento", label: "Tratamiento", icon: "🩺", tipo: "categorica" },
-  { key: "diagnostico", label: "Casos por diagnóstico Sanaré", icon: "📋", tipo: "categorica" }
+  { key: "diagnostico", label: "Diagnóstico", icon: "📋", tipo: "categorica" }
 ];
 
 const UMBRAL_GRAFICA_BARRAS = 12; // hasta este número de valores distintos, se dibuja gráfica; más allá, tabla clasificada
@@ -425,8 +425,11 @@ function renderGridApartados(filtroTexto) {
             mini = hist.map((h, i) => `<span style="height:${Math.max(10, (h.count / maxCount) * 100)}%; background:${colores.paleta[i % colores.paleta.length]}"></span>`).join("");
           }
         } else {
-          const dist = a.key === "diagnostico"
-            ? resumenCasosDiagnostico(rows).categorias : distribucionCategorica(rows, a.key);
+          const sedeFiltro = $("filtroSede") ? normalizarTexto($("filtroSede").value) : "";
+          const filasApartado = a.key === "diagnostico"
+            ? rows.filter(r => normalizarTexto(r.marca) === "sanare" &&
+                (!sedeFiltro || normalizarTexto(r.sede) === sedeFiltro)) : rows;
+          const dist = distribucionCategorica(filasApartado, a.key);
           if (dist.length) {
             const total = dist.reduce((s, [, c]) => s + c, 0);
             const [topVal, topCount] = dist[0];
@@ -467,77 +470,6 @@ function activarApartado(key) {
   if (det) det.scrollIntoView({ behavior: "smooth", block: "nearest" });
 }
 
-function resumenCasosDiagnostico(rows) {
-  const sedeFiltro = $("filtroSede") ? normalizarTexto($("filtroSede").value) : "";
-  const pacientes = new Map();
-  for (const r of rows) {
-    if (normalizarTexto(r.marca) !== "sanare") continue;
-    if (sedeFiltro && normalizarTexto(r.sede) !== sedeFiltro) continue;
-    const paciente = clavePaciente(r.paciente);
-    if (!paciente) continue;
-    const categoria = categoriaCasoSanare(r.diagnostico);
-    if (!pacientes.has(paciente)) pacientes.set(paciente, new Map());
-    const categorias = pacientes.get(paciente);
-    const actual = categorias.get(categoria) || { registros: 0, ultimaFecha: "" };
-    actual.registros++;
-    actual.ultimaFecha = String(r.fechaInfusion || "") > actual.ultimaFecha
-      ? String(r.fechaInfusion || "") : actual.ultimaFecha;
-    categorias.set(categoria, actual);
-  }
-  const conteos = new Map();
-  for (const categorias of pacientes.values()) {
-    const elegibles = Array.from(categorias.entries());
-    const candidatas = elegibles.some(([nombre]) => nombre !== "Otros Diagnósticos")
-      ? elegibles.filter(([nombre]) => nombre !== "Otros Diagnósticos") : elegibles;
-    candidatas.sort((a, b) => b[1].registros - a[1].registros ||
-      b[1].ultimaFecha.localeCompare(a[1].ultimaFecha) || a[0].localeCompare(b[0], "es"));
-    const nombre = candidatas[0][0];
-    conteos.set(nombre, (conteos.get(nombre) || 0) + 1);
-  }
-  return {
-    total: pacientes.size,
-    categorias: Array.from(conteos.entries()).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "es"))
-  };
-}
-
-function renderResumenCasosDiagnostico(cont) {
-  const resumen = resumenCasosDiagnostico(execUltimaData || []);
-  const q = normalizarTexto(apartadoDetBuscarTexto);
-  const categorias = q ? resumen.categorias.filter(([nombre]) => normalizarTexto(nombre).includes(q)) : resumen.categorias;
-  const totalVisible = categorias.reduce((n, [, cuenta]) => n + cuenta, 0);
-  cont.innerHTML = `
-    <div class="apartado-detalle-head">
-      <div>
-        <span class="eyebrow">Resumen de pacientes por categoría de diagnóstico</span>
-        <h3>📋 Casos por diagnóstico Sanaré</h3>
-        <p class="muted">${resumen.total} pacientes únicos · ${resumen.categorias.length} categorías</p>
-      </div>
-      <div class="apartado-detalle-actions">
-        <input type="text" id="apartadoDetBuscar" placeholder="Buscar categoría..." value="${escapeHtml(apartadoDetBuscarTexto)}" />
-        <button type="button" id="btnApartadoExportar" class="btn btn-ghost">Exportar a Excel</button>
-      </div>
-    </div>
-    <p class="muted apartado-tabla-nota">Cada paciente cuenta una sola vez. Si tiene varios diagnósticos, se usa el más frecuente en sus registros; en empate, el más reciente. Se aplican los filtros de fecha y sede.</p>
-    <div class="pivot-table-wrap apartado-table-wrap">
-      <table class="pivot-table casos-resumen-table" id="apartadoTabla">
-        <thead><tr><th>Categoría de Diagnóstico</th><th>Total Pacientes</th></tr></thead>
-        <tbody>${categorias.length ? categorias.map(([nombre, cuenta]) => `<tr><td>${escapeHtml(nombre)}</td><td>${cuenta}</td></tr>`).join("")
-          : `<tr><td colspan="2">Sin resultados para esta búsqueda.</td></tr>`}</tbody>
-        <tfoot><tr><th>${q ? "TOTAL PACIENTES (FILTRADO)" : "TOTAL PACIENTES"}</th><th>${totalVisible}</th></tr></tfoot>
-      </table>
-    </div>`;
-  const buscar = $("apartadoDetBuscar");
-  buscar.addEventListener("input", () => {
-    apartadoDetBuscarTexto = buscar.value;
-    const cursor = buscar.selectionStart;
-    renderResumenCasosDiagnostico(cont);
-    const nuevo = $("apartadoDetBuscar");
-    nuevo.focus();
-    nuevo.setSelectionRange(cursor, cursor);
-  });
-  $("btnApartadoExportar").addEventListener("click", () => exportarApartadoAExcel({ key: "diagnostico", label: "Diagnóstico" }));
-}
-
 function renderDetalleApartado() {
   const cont = $("apartadoDetalle");
   if (!cont) return;
@@ -549,12 +481,13 @@ function renderDetalleApartado() {
 
   const campo = APARTADOS.find(a => a.key === apartadoActivo);
   if (!campo) return;
-  if (campo.key === "diagnostico") {
-    renderResumenCasosDiagnostico(cont);
-    return;
-  }
 
-  const rows = (execUltimaData || []).filter(r => r.paciente);
+  let rows = (execUltimaData || []).filter(r => r.paciente);
+  if (campo.key === "diagnostico") {
+    const sedeFiltro = $("filtroSede") ? normalizarTexto($("filtroSede").value) : "";
+    rows = rows.filter(r => normalizarTexto(r.marca) === "sanare" &&
+      (!sedeFiltro || normalizarTexto(r.sede) === sedeFiltro));
+  }
   const colores = obtenerColoresTema();
 
   let subtitulo = "";
@@ -736,3 +669,4 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 window.renderExecutiveDashboard = renderExecutiveDashboard;
+

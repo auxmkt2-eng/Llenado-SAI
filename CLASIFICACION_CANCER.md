@@ -1,6 +1,6 @@
 # Criterio de clasificación del estadístico
 
-En **Dashboard interactivo → Casos por diagnóstico Sanaré**, la tabla sigue la referencia: **Categoría de Diagnóstico**, **Total Pacientes** y una fila **TOTAL PACIENTES**. Cada paciente cuenta una vez, aun si tiene múltiples atenciones. Los resultados están ordenados de mayor a menor número de pacientes.
+En **Dashboard interactivo → Diagnóstico**, la tabla agrupa los textos originales en categorías reconocibles y conserva las columnas de **Registros**, **Pacientes**, **%**, **Con monto**, **Monto total del servicio** y **Ticket promedio**. Registros cuenta atenciones; Pacientes cuenta nombres únicos dentro de cada categoría. El porcentaje usa el total de registros del desglose.
 
 ## Decisiones de agrupación
 
@@ -24,9 +24,9 @@ En **Dashboard interactivo → Casos por diagnóstico Sanaré**, la tabla sigue 
 
 Los diagnósticos de **sitios múltiples** que no permiten reconocer un tumor primario conservan su texto original en la tabla. Los carcinomas sin órgano indicado se agrupan por tipo histológico sin inventar un sitio. Un cáncer metastásico se asigna al sitio primario cuando el texto lo permite; el órgano de la metástasis no define la categoría.
 
-El resumen considera solo la marca Sanaré y respeta los filtros de fecha y sede del dashboard. Si un paciente tiene más de una categoría en sus registros, se asigna a la más frecuente; en caso de empate, a la más reciente. «Otros Diagnósticos» reúne las afecciones no oncológicas, como en la referencia. El diagnóstico original de cada registro no se altera.
+El desglose considera solo la marca Sanaré y respeta los filtros de fecha y sede del dashboard. Las afecciones no oncológicas se muestran por su nombre o grupo concreto (por ejemplo, «Anemia / Ferropenia» y «Osteoporosis / Osteopenia»), sin una fila «Otros Diagnósticos». El diagnóstico original de cada registro no se altera.
 
-Se revisaron los 44 registros que antes aparecían como «Otros Diagnósticos» en la exportación del 12 de noviembre de 2026. Condrosarcoma se asigna a sarcomas; los tumores germinales retroperitoneales, la enfermedad trofoblástica gestacional y las neoplasias neuroendocrinas reciben categorías específicas. Las enfermedades no oncológicas quedan en «Otros Diagnósticos», como en la tabla de referencia. Esta revisión no supone que toda enfermedad trofoblástica o todo teratoma inmaduro sea maligno; la categoría refleja el diagnóstico escrito, no una confirmación histológica adicional.
+Se revisaron los 44 registros que antes aparecían como «Otros Diagnósticos» en la exportación del 12 de noviembre de 2026. Condrosarcoma se asigna a sarcomas; los tumores germinales retroperitoneales, la enfermedad trofoblástica gestacional y las neoplasias neuroendocrinas reciben categorías específicas. Las enfermedades no oncológicas también quedan en grupos con nombre. Esta revisión no supone que toda enfermedad trofoblástica o todo teratoma inmaduro sea maligno; la categoría refleja el diagnóstico escrito, no una confirmación histológica adicional.
 
 ## Fuentes consultadas
 

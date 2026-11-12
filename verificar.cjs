@@ -8,8 +8,6 @@ const context = {
 vm.createContext(context);
 vm.runInContext(source.slice(source.indexOf('function apartadoValorCelda'), source.indexOf('function estadisticasNumericas')), context);
 vm.runInContext(fs.readFileSync(root + 'categorias-cancer.js', 'utf8'), context);
-context.$ = () => ({ value: '' });
-vm.runInContext(source.slice(source.indexOf('function resumenCasosDiagnostico'), source.indexOf('function renderResumenCasosDiagnostico')), context);
 const cases = [
   ['CANCER DE MAMA TRIPLE NEGATIVO', 'CÁNCER DE MAMA'],
   ['CÁNCER DE MAMA IZQUIERDO', 'CÁNCER DE MAMA'],
@@ -63,15 +61,10 @@ for (const [diagnostico, categoria] of nuevos) {
 }
 const reparto = context.distribucionCategorica(nuevos.map(([diagnostico]) => ({ diagnostico })), 'diagnostico');
 if (reparto.reduce((n, [, cuenta]) => n + cuenta, 0) !== nuevos.length || reparto.some(([nombre]) => nombre.startsWith('Otros'))) throw Error('Persisten diagnósticos genéricos');
-const resumenCasos = context.resumenCasosDiagnostico([
-  { marca: 'SANARÉ', sede: 'Morelia', paciente: 'Ana Pérez', fechaInfusion: '2026-01-01', diagnostico: 'CÁNCER DE MAMA' },
-  { marca: 'SANARÉ', sede: 'Morelia', paciente: ' ANA  PEREZ ', fechaInfusion: '2026-02-01', diagnostico: 'CÁNCER DE MAMA' },
-  { marca: 'SANARÉ', sede: 'Toluca', paciente: 'Luis', fechaInfusion: '2026-03-01', diagnostico: 'OSTEOPOROSIS' },
-  { marca: 'NOMAD', sede: 'Toluca', paciente: 'Otro', fechaInfusion: '2026-03-01', diagnostico: 'CÁNCER DE MAMA' }
-]);
-if (resumenCasos.total !== 2 || resumenCasos.categorias.reduce((n, [, cuenta]) => n + cuenta, 0) !== 2 ||
-    resumenCasos.categorias[0][0] !== 'Cáncer / Neoplasia de Mama') throw Error('El resumen no cuenta pacientes únicos por categoría');
-if (context.categoriaCasoSanare('CÁNCER DE PRÓSTATA') !== 'Cáncer / Neoplasia de Próstata' ||
-    context.categoriaCasoSanare('CA EPIDERMOIDE DE PENE') !== 'Cáncer / Neoplasia de Pene' ||
-    context.categoriaCasoSanare('ANEMIA FERROPÉNICA') !== 'Otros Diagnósticos') throw Error('Las categorías no siguen el diagnóstico');
+const noOncologicos = context.distribucionCategorica([
+  { diagnostico: 'ANEMIA FERROPÉNICA' },
+  { diagnostico: 'OSTEOPOROSIS' },
+  { diagnostico: 'ANEMIA Y OSTEOPOROSIS' }
+], 'diagnostico');
+if (noOncologicos.length !== 3 || noOncologicos.some(([nombre]) => nombre.startsWith('Otros'))) throw Error('Las afecciones no oncológicas quedaron en una fila genérica');
 console.log(`${cases.length} casos, distribución, montos y ticket promedio correctos`);
