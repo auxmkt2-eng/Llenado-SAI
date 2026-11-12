@@ -1,6 +1,6 @@
 const fs = require('fs');
 const vm = require('vm');
-const root = __dirname + '/Llenado-SAI-main/';
+const root = __dirname + '/';
 const source = fs.readFileSync(root + 'dashboard.js', 'utf8');
 const context = {
   normalizarTexto: value => String(value ?? '').trim().toLowerCase().normalize('NFD').replace(/\p{M}/gu, '')

@@ -63,7 +63,9 @@ function initExecTabs() {
       const tab = btn.dataset.execTab;
       $("execTabResumen").classList.toggle("hidden", tab !== "resumen");
       $("execTabPivot").classList.toggle("hidden", tab !== "pivot");
+      $("execTabCasos").classList.toggle("hidden", tab !== "casos");
       if (tab === "pivot") { renderGridApartados($("apartadoBuscarCampo") ? $("apartadoBuscarCampo").value : ""); renderDetalleApartado(); }
+      if (tab === "casos" && typeof renderEstadisticoCasos === "function") renderEstadisticoCasos();
     });
   });
 }

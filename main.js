@@ -2,6 +2,8 @@
 // 1) ESTADO — los datos reales se cargan desde Supabase
 // ============================================================
 const SEDES = ["", "Morelia", "Toluca", "Narvarte", "Tijuana", "Santa Fe"];
+let allRows = [];
+let filteredRows = [];
 
 function calcularTotal(subtotal, iva) {
   const sub = Number(subtotal) || 0;
@@ -148,6 +150,7 @@ function applyFilters() {
   if (typeof renderExecutiveDashboard === "function") {
     renderExecutiveDashboard(rowsParaDashboard);
   }
+  if (typeof renderEstadisticoCasos === "function") renderEstadisticoCasos();
 }
 
 // ============================================================
@@ -502,13 +505,24 @@ function mapRegistroSupabase(r) {
 
 async function cargarRegistros() {
   try {
-    const { data, error } = await supabaseClient
-      .from("cotizaciones")
-      .select("*");
+    // Supabase limita el tamaño de cada respuesta; reunir todas las páginas
+    // evita que los años antiguos desaparezcan del estadístico.
+    const data = [];
+    const pageSize = 1000;
+    for (let offset = 0; ; offset = data.length) {
+      const { data: page, error, count } = await supabaseClient
+        .from("cotizaciones")
+        .select("*", { count: "exact" })
+        .order("id", { ascending: true })
+        .range(offset, offset + pageSize - 1);
+      if (error) throw error;
+      data.push(...(page || []));
+      if (count === null || count === undefined) throw new Error("No se pudo comprobar el total de registros.");
+      if (data.length >= count) break;
+      if (!page || page.length === 0) throw new Error("No se pudieron cargar todos los registros.");
+    }
 
-    if (error) throw error;
-
-    allRows = (data || [])
+    allRows = data
       .map(mapRegistroSupabase)
       .sort((a, b) =>
         (b.fechaInfusion || "").localeCompare(a.fechaInfusion || "")
