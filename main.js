@@ -150,7 +150,6 @@ function applyFilters() {
   if (typeof renderExecutiveDashboard === "function") {
     renderExecutiveDashboard(rowsParaDashboard);
   }
-  if (typeof renderEstadisticoCasos === "function") renderEstadisticoCasos();
 }
 
 // ============================================================

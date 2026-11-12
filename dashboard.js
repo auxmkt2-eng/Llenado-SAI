@@ -63,9 +63,7 @@ function initExecTabs() {
       const tab = btn.dataset.execTab;
       $("execTabResumen").classList.toggle("hidden", tab !== "resumen");
       $("execTabPivot").classList.toggle("hidden", tab !== "pivot");
-      $("execTabCasos").classList.toggle("hidden", tab !== "casos");
       if (tab === "pivot") { renderGridApartados($("apartadoBuscarCampo") ? $("apartadoBuscarCampo").value : ""); renderDetalleApartado(); }
-      if (tab === "casos" && typeof renderEstadisticoCasos === "function") renderEstadisticoCasos();
     });
   });
 }
@@ -331,7 +329,7 @@ function apartadoFormatoNumero(valor, campo) {
 function distribucionCategorica(rows, key) {
   const mapa = new Map();
   rows.forEach(r => {
-    const val = key === "diagnostico" ? homologarDiagnostico(r[key])
+    const val = key === "diagnostico" ? (categoriaCancer(r[key]) || "Otros Diagnósticos")
       : key === "medicos" ? homologarMedico(r[key]) : apartadoValorCelda(r[key]);
     mapa.set(val, (mapa.get(val) || 0) + 1);
   });
@@ -356,7 +354,7 @@ function pacientesPorMedico(rows) {
 function montosPorDiagnostico(rows) {
   const mapa = new Map();
   rows.forEach(r => {
-    const grupo = homologarDiagnostico(r.diagnostico);
+    const grupo = categoriaCancer(r.diagnostico) || "Otros Diagnósticos";
     if (!mapa.has(grupo)) mapa.set(grupo, { montoTotal: 0, registrosConMonto: 0, pacientes: new Set() });
     const resumen = mapa.get(grupo);
     const paciente = clavePaciente(r.paciente);
@@ -528,7 +526,7 @@ function renderDetalleApartado() {
     const pacientesMedico = campo.key === "medicos" ? pacientesPorMedico(rows) : null;
     if (campo.key === "diagnostico" || campo.key === "medicos") {
       rows.forEach(r => {
-        const grupo = campo.key === "diagnostico" ? homologarDiagnostico(r.diagnostico) : homologarMedico(r.medicos);
+        const grupo = campo.key === "diagnostico" ? (categoriaCancer(r.diagnostico) || "Otros Diagnósticos") : homologarMedico(r.medicos);
         if (!variantes.has(grupo)) variantes.set(grupo, new Map());
         const original = apartadoValorCelda(r[campo.key]);
         const mapa = variantes.get(grupo);
@@ -545,7 +543,7 @@ function renderDetalleApartado() {
     subtitulo = `${totalReg} registro(s) analizado(s) · ${dist.length} valor(es) distinto(s)${apartadoDetBuscarTexto ? " (filtrado)" : ""}`;
 
     const notaMontos = campo.key === "diagnostico"
-      ? `<p class="muted apartado-tabla-nota">Pacientes únicos por diagnóstico. El ticket promedio se calcula como monto total del servicio ÷ registros con monto.</p>`
+      ? `<p class="muted apartado-tabla-nota">Diagnósticos agrupados por sitio primario y zona anatómica. Pacientes únicos por categoría; el ticket promedio es monto total del servicio ÷ registros con monto.</p>`
       : "";
 
     if (!dist.length) {
@@ -565,7 +563,7 @@ function renderDetalleApartado() {
       bodyHtml = `${notaMontos}<p class="muted apartado-tabla-nota">Este apartado tiene muchos valores distintos: se muestra como tabla clasificada por frecuencia (usa el buscador para filtrar).</p>`;
     }
 
-    tablaHeadHtml = `<thead><tr><th>${escapeHtml(campo.label)}</th><th>Registros</th>${campo.key === "diagnostico" || campo.key === "medicos" ? "<th>Pacientes</th>" : ""}<th>%</th>${campo.key === "diagnostico" ? "<th>Con monto</th><th>Monto total del servicio</th><th>Ticket promedio</th>" : ""}</tr></thead>`;
+    tablaHeadHtml = `<thead><tr><th>${campo.key === "diagnostico" ? "Categoría de diagnóstico" : escapeHtml(campo.label)}</th><th>Registros</th>${campo.key === "diagnostico" || campo.key === "medicos" ? "<th>Pacientes</th>" : ""}<th>%</th>${campo.key === "diagnostico" ? "<th>Con monto</th><th>Monto total del servicio</th><th>Ticket promedio</th>" : ""}</tr></thead>`;
     tablaFilasHtml = dist.map(([val, count]) => {
       const resumen = montos && montos.get(val);
       const montoHtml = resumen

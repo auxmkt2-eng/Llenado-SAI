@@ -52,7 +52,6 @@
     <div class="exec-tabs">
       <button type="button" class="exec-tab-btn active" data-exec-tab="resumen">📊 Resumen ejecutivo</button>
       <button type="button" class="exec-tab-btn" data-exec-tab="pivot">📊 Dashboard interactivo</button>
-      <button type="button" class="exec-tab-btn" data-exec-tab="casos">📅 Casos por año</button>
     </div>
 
     <div id="execTabResumen" class="exec-tab-panel">
@@ -117,26 +116,6 @@
       </div>
     </div>
 
-    <div id="execTabCasos" class="exec-tab-panel hidden">
-      <div class="apartados-intro">
-        <div>
-          <h3>Casos de Sanaré por año y sede</h3>
-          <p class="muted">Pacientes únicos por año de infusión, agrupados por sitio primario y categorías anatómicas. Próstata, pene y testículo comparten la categoría genitourinaria masculina.</p>
-        </div>
-        <div class="casos-controls">
-          <div class="field">
-            <label for="casosTipo">Categoría de diagnóstico</label>
-            <select id="casosTipo"><option value="">Todas las categorías</option></select>
-          </div>
-          <button type="button" id="casosExportar" class="btn btn-ghost">Exportar a Excel</button>
-        </div>
-      </div>
-      <p id="casosResumen" class="muted" aria-live="polite"></p>
-      <div class="casos-table-wrap table-wrap">
-        <table id="casosTabla"><thead></thead><tbody></tbody><tfoot></tfoot></table>
-      </div>
-      <p id="casosNota" class="muted casos-nota"></p>
-    </div>
   </section>
 
   <main class="dashboard">
@@ -546,7 +525,7 @@
 <script src="auth.js"></script>
 <script src="main.js"></script>
 <script src="dashboard.js"></script>
-<script src="estadistico-casos.js"></script>
+<script src="categorias-cancer.js"></script>
 
 <datalist id="listaAseguradoras">
   <option value="Pago de bolsillo"></option>

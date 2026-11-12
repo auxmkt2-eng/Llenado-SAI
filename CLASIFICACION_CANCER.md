@@ -1,6 +1,6 @@
 # Criterio de clasificación del estadístico
 
-El filtro «Categoría de diagnóstico» agrupa los diagnósticos de Sanaré por el sitio donde se originó el cáncer. Es una **clasificación de reporte**, basada en la tabla de referencia del usuario; no asigna códigos CIE-O ni sustituye una revisión clínica.
+En **Dashboard interactivo → Diagnóstico**, las filas de la tabla muestran categorías agrupadas por el sitio donde se originó el cáncer. Se conservan las columnas de registros, pacientes, porcentaje y montos del desglose original. Es una **clasificación de reporte**, basada en la tabla de referencia del usuario; no asigna códigos CIE-O ni sustituye una revisión clínica.
 
 ## Decisiones de agrupación
 
@@ -24,7 +24,7 @@ El filtro «Categoría de diagnóstico» agrupa los diagnósticos de Sanaré por
 
 Los cánceres de **sitios múltiples** y los que no permiten identificar el sitio se muestran en sendas categorías «Otros cánceres». No se infiere que una neoplasia sin indicación de malignidad sea cáncer. Un cáncer metastásico se asigna al sitio primario cuando el texto lo permite; el órgano de la metástasis no define la categoría.
 
-El conteo usa pacientes únicos por año de **fecha de infusión**, no casos incidentes diagnosticados ese año. La identificación se basa en el nombre normalizado del paciente; los registros sin nombre o fecha válida se excluyen y se informan en la pantalla. El diagnóstico original no se altera.
+La columna **Registros** cuenta atenciones, mientras que **Pacientes** cuenta nombres de pacientes únicos dentro de cada categoría. El desglose respeta los filtros del dashboard interactivo. Los diagnósticos no oncológicos se reúnen en «Otros Diagnósticos». El texto original de cada registro no se altera.
 
 ## Fuentes consultadas
 
@@ -33,4 +33,4 @@ El conteo usa pacientes únicos por año de **fecha de infusión**, no casos inc
 - [Instituto Nacional del Cáncer: cáncer metastásico y sitio primario](https://www.cancer.gov/espanol/tipos/cancer-metastatico).
 - [SEER: agrupación de sitios CIE-O-3](https://seer.cancer.gov/siterecode/icdo3_2023_expanded/).
 
-Las etiquetas finales siguen la tabla del usuario cuando esta separa sitios que podrían combinarse de otras maneras (por ejemplo, colon y recto). Se completaron los sitios ausentes para que los diagnósticos oncológicos no desaparezcan del filtro.
+Las etiquetas finales siguen la tabla del usuario cuando esta separa sitios que podrían combinarse de otras maneras (por ejemplo, colon y recto). Se completaron los sitios ausentes para que los diagnósticos oncológicos aparezcan en la tabla agrupada.

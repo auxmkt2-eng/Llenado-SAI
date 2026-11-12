@@ -361,15 +361,6 @@ html[data-theme="light"] .toast.error { border-color: rgba(220,38,38,.3); backgr
   box-shadow: 0 10px 25px rgba(78,163,255,.3);
 }
 .exec-tab-panel.hidden { display: none; }
-.casos-controls { display: flex; align-items: flex-end; gap: .75rem; flex-wrap: wrap; }
-.casos-controls .field { min-width: 220px; }
-.casos-controls select { width: 100%; }
-.casos-table-wrap { margin-top: .75rem; }
-.casos-table-wrap table { min-width: 620px; }
-.casos-table-wrap th, .casos-table-wrap td { text-align: right; font-variant-numeric: tabular-nums; }
-.casos-table-wrap th:first-child { text-align: left; }
-.casos-table-wrap tfoot { font-weight: 700; background: rgba(78,163,255,.1); }
-.casos-nota { margin: .8rem 0 0; font-size: .84rem; }
 
 .exec-kpis-secondary {
   grid-template-columns: 1fr 1fr 1fr;
