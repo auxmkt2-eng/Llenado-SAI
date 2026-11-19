@@ -11,12 +11,28 @@ function filasLmpVisibles() {
   if (typeof allRows === "undefined") return [];
   return allRows.filter(row =>
     normalizarTexto(row.marca) === "lmp" &&
-    normalizarTexto(row.sede) === normalizarTexto(sedeLmpPerfil())
+    (currentUser?.role === "admin" ||
+      normalizarTexto(row.sede) === normalizarTexto(sedeLmpPerfil()))
+  );
+}
+
+function filasLmpFiltradas() {
+  const desde = $("filtroFechaInicio")?.value || "";
+  const hasta = $("filtroFechaFin")?.value || "";
+  const texto = normalizarTexto($("filtroTexto")?.value || "");
+  const sede = currentUser?.role === "admin" ? $("filtroSede")?.value || "" : "";
+  return filasLmpVisibles().filter(row =>
+    (!desde || row.fechaInfusion >= desde) &&
+    (!hasta || row.fechaInfusion <= hasta) &&
+    (!sede || normalizarTexto(row.sede) === normalizarTexto(sede)) &&
+    (!texto || normalizarTexto([row.folio, row.paciente, row.servicio].join(" ")).includes(texto))
   );
 }
 
 function renderLmpTable() {
-  const rows = filasLmpVisibles();
+  const rows = filasLmpFiltradas();
+  const esAdmin = currentUser?.role === "admin";
+  $("lmpSedeHeader").classList.toggle("hidden", !esAdmin);
   const tbody = $("tablaLmpBody");
   tbody.innerHTML = rows.length ? rows.map(row => `
     <tr>
@@ -24,9 +40,10 @@ function renderLmpTable() {
       <td>${escapeHtml(row.paciente || "—")}</td>
       <td>${escapeHtml(row.servicio || "—")}</td>
       <td class="money">${formatearMoneda(row.montoServicio)}</td>
+      ${esAdmin ? `<td>${escapeHtml(row.sede || "—")}</td>` : ""}
       <td><button type="button" class="action-btn" data-lmp-edit="${escapeHtml(row.id)}">Editar</button></td>
     </tr>
-  `).join("") : '<tr><td colspan="5" class="lmp-empty">Aún no hay registros LMP.</td></tr>';
+  `).join("") : `<tr><td colspan="${esAdmin ? 6 : 5}" class="lmp-empty">Aún no hay registros LMP.</td></tr>`;
   if (vistaLmpActiva) $("contadorFilas").textContent = `${rows.length} registros`;
 }
 
@@ -42,7 +59,7 @@ function seleccionarVistaLmp(activa) {
   });
   $("btnNuevoLmp").classList.toggle("hidden", !activa);
   $("contadorFilas").textContent = activa
-    ? `${filasLmpVisibles().length} registros`
+    ? `${filasLmpFiltradas().length} registros`
     : `${filteredRows.length} registros`;
 }
 
@@ -70,7 +87,14 @@ function cerrarLmp() {
 async function guardarLmp(event) {
   event.preventDefault();
   if (!currentUser || !["admin", "sede"].includes(currentUser.role)) return;
-  const sede = sedeLmpPerfil();
+  const rowEditada = lmpEditandoId
+    ? filasLmpVisibles().find(row => row.id === lmpEditandoId)
+    : null;
+  if (lmpEditandoId && !rowEditada) {
+    showToast("El registro LMP ya no está disponible.", "error");
+    return;
+  }
+  const sede = rowEditada?.sede || sedeLmpPerfil();
   const monto = Number($("lmpMonto").value);
   if (!$("lmpFecha").value || !$("lmpPaciente").value.trim() ||
       !$("lmpEstudio").value.trim() || !Number.isFinite(monto) || monto < 0) {

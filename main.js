@@ -157,13 +157,20 @@ function applyFilters() {
 // 5) KPIs
 // ============================================================
 function renderKPIs(rows) {
-  const subtotal = rows.reduce(
-    (a, r) => a + (r.montoServicio || 0),
+  const montoSanare = rows.reduce(
+    (a, r) => a + (Number(r.montoServicio) || 0),
+    0
+  );
+  const rowsLmp = typeof filasLmpFiltradas === "function" ? filasLmpFiltradas() : [];
+  const montoLmp = rowsLmp.reduce(
+    (a, r) => a + (Number(r.montoServicio) || 0),
     0
   );
 
-  $("kpiSubtotal").textContent = rows.length;
-  $("kpiSubtotalMonto").textContent = formatearMoneda(subtotal);
+  $("kpiSubtotal").textContent = rows.length + rowsLmp.length;
+  $("kpiSubtotalMonto").textContent = formatearMoneda(montoSanare + montoLmp);
+  $("kpiLmpMonto").textContent = formatearMoneda(montoLmp);
+  $("kpiLmpRegistros").textContent = `${rowsLmp.length} registro(s) LMP`;
   $("contadorFilas").textContent = `${rows.length} registros`;
 }
 
