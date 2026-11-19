@@ -74,6 +74,7 @@ function abrirLmp(id = null) {
   $("lmpPaciente").value = row?.paciente || "";
   $("lmpEstudio").value = row?.servicio || "";
   $("lmpMonto").value = row?.montoServicio ?? "";
+  $("btnBorrarLmp").classList.toggle("hidden", !row || currentUser.role !== "admin");
   $("drawerLmp").classList.remove("hidden");
   $("drawerLmpBackdrop").classList.remove("hidden");
 }
@@ -133,6 +134,41 @@ async function guardarLmp(event) {
   }
 }
 
+async function borrarLmp() {
+  if (currentUser?.role !== "admin" || !lmpEditandoId) return;
+  const row = filasLmpVisibles().find(r => r.id === lmpEditandoId);
+  if (!row) {
+    showToast("El registro LMP ya no está disponible.", "error");
+    return;
+  }
+  const confirmado = window.confirm(
+    `Vas a borrar el registro LMP de "${row.paciente || "este paciente"}" ` +
+    `(${row.sede || "sin sede"}). Esta acción no se puede deshacer. ¿Continuar?`
+  );
+  if (!confirmado) return;
+
+  const btn = $("btnBorrarLmp");
+  btn.disabled = true;
+  try {
+    const { data, error } = await supabaseClient.from("cotizaciones")
+      .delete()
+      .eq("id", row.id)
+      .eq("marca", "LMP")
+      .eq("sede", row.sede)
+      .select("id");
+    if (error) throw error;
+    if (!data?.length) throw new Error("No se borró el registro LMP. Actualiza la tabla e inténtalo de nuevo.");
+    cerrarLmp();
+    await cargarRegistros();
+    showToast("Registro LMP borrado.", "success");
+  } catch (error) {
+    console.error(error);
+    showToast(error.message || "No se pudo borrar el registro LMP.", "error");
+  } finally {
+    btn.disabled = false;
+  }
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   $("btnVistaLmp").addEventListener("click", () => seleccionarVistaLmp(true));
   $("importMarca").addEventListener("click", () => seleccionarVistaLmp(false));
@@ -145,4 +181,5 @@ document.addEventListener("DOMContentLoaded", () => {
   $("btnCerrarLmp").addEventListener("click", cerrarLmp);
   $("drawerLmpBackdrop").addEventListener("click", cerrarLmp);
   $("formLmp").addEventListener("submit", guardarLmp);
+  $("btnBorrarLmp").addEventListener("click", borrarLmp);
 });
