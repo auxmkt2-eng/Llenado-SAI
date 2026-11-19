@@ -99,7 +99,7 @@ function initFilters() {
 // 4) FILTRADO
 // ============================================================
 function applyFilters() {
-  let rows = [...allRows];
+  let rows = allRows.filter(r => normalizarTexto(r.marca) === "sanare");
 
   // Las sedes solamente pueden ver registros de su propia sede.
   if (currentUser && currentUser.role === "sede") {
@@ -150,6 +150,7 @@ function applyFilters() {
   if (typeof renderExecutiveDashboard === "function") {
     renderExecutiveDashboard(rowsParaDashboard);
   }
+  if (typeof renderLmpTable === "function") renderLmpTable();
 }
 
 // ============================================================

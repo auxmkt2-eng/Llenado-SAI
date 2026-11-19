@@ -240,7 +240,11 @@ function exportarRegistrosAExcel() {
   }
 
   // Exporta lo que se está viendo actualmente (respeta los filtros aplicados)
-  const filasParaExportar = (typeof filteredRows !== "undefined" && filteredRows.length) ? filteredRows : allRows;
+  const filasParaExportar = typeof filteredRows !== "undefined" ? filteredRows : [];
+  if (!filasParaExportar.length) {
+    showToast("No hay registros de Sanaré para exportar con estos filtros.", "error");
+    return;
+  }
 
   const datosExcel = filasParaExportar.map(r => ({
     "Folio": r.folio || "",
