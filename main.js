@@ -510,9 +510,14 @@ async function cargarRegistros() {
     const data = [];
     const pageSize = 1000;
     for (let offset = 0; ; offset = data.length) {
-      const { data: page, error, count } = await supabaseClient
+      let consulta = supabaseClient
         .from("cotizaciones")
-        .select("*", { count: "exact" })
+        .select("*", { count: "exact" });
+      // Cada perfil de sede descarga únicamente sus propios registros.
+      if (currentUser?.role === "sede") {
+        consulta = consulta.eq("sede", currentUser.sede);
+      }
+      const { data: page, error, count } = await consulta
         .order("id", { ascending: true })
         .range(offset, offset + pageSize - 1);
       if (error) throw error;

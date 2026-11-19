@@ -3,9 +3,16 @@
 let vistaLmpActiva = false;
 let lmpEditandoId = null;
 
+function sedeLmpPerfil() {
+  return currentUser?.role === "sede" ? currentUser.sede : "Polanco";
+}
+
 function filasLmpVisibles() {
   if (typeof allRows === "undefined") return [];
-  return allRows.filter(row => normalizarTexto(row.marca) === "lmp");
+  return allRows.filter(row =>
+    normalizarTexto(row.marca) === "lmp" &&
+    normalizarTexto(row.sede) === normalizarTexto(sedeLmpPerfil())
+  );
 }
 
 function renderLmpTable() {
@@ -63,6 +70,7 @@ function cerrarLmp() {
 async function guardarLmp(event) {
   event.preventDefault();
   if (!currentUser || !["admin", "sede"].includes(currentUser.role)) return;
+  const sede = sedeLmpPerfil();
   const monto = Number($("lmpMonto").value);
   if (!$("lmpFecha").value || !$("lmpPaciente").value.trim() ||
       !$("lmpEstudio").value.trim() || !Number.isFinite(monto) || monto < 0) {
@@ -74,7 +82,7 @@ async function guardarLmp(event) {
     paciente: $("lmpPaciente").value.trim(),
     servicio: $("lmpEstudio").value.trim(),
     monto_del_servicio: monto,
-    sede: "Polanco"
+    sede
   };
   const btn = $("btnGuardarLmp");
   btn.disabled = true;
@@ -82,10 +90,10 @@ async function guardarLmp(event) {
     let query;
     if (lmpEditandoId) {
       query = supabaseClient.from("cotizaciones").update(registro)
-        .eq("id", lmpEditandoId).eq("marca", "LMP");
+        .eq("id", lmpEditandoId).eq("marca", "LMP").eq("sede", sede);
     } else {
       query = supabaseClient.from("cotizaciones").insert({
-        ...registro, marca: "LMP", folio: generarFolio("LMP", "Polanco")
+        ...registro, marca: "LMP", folio: generarFolio("LMP", sede)
       });
     }
     const { error } = await query;
