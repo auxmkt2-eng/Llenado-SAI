@@ -74,6 +74,11 @@ function abrirLmp(id = null) {
   $("lmpPaciente").value = row?.paciente || "";
   $("lmpEstudio").value = row?.servicio || "";
   $("lmpMonto").value = row?.montoServicio ?? "";
+  const adminCorrigeSede = currentUser.role === "admin" && !!row;
+  $("lmpSedePerfilCampo").classList.toggle("hidden", adminCorrigeSede);
+  $("lmpSedeAdminCampo").classList.toggle("hidden", !adminCorrigeSede);
+  $("lmpSedePerfil").value = sedeLmpPerfil();
+  $("lmpSedeAdmin").value = row?.sede || "Polanco";
   $("btnBorrarLmp").classList.toggle("hidden", !row || currentUser.role !== "admin");
   $("drawerLmp").classList.remove("hidden");
   $("drawerLmpBackdrop").classList.remove("hidden");
@@ -95,9 +100,12 @@ async function guardarLmp(event) {
     showToast("El registro LMP ya no está disponible.", "error");
     return;
   }
-  const sede = rowEditada?.sede || sedeLmpPerfil();
+  const sedeOriginal = rowEditada?.sede || sedeLmpPerfil();
+  const sede = currentUser.role === "admin" && rowEditada
+    ? $("lmpSedeAdmin").value
+    : sedeLmpPerfil();
   const monto = Number($("lmpMonto").value);
-  if (!$("lmpFecha").value || !$("lmpPaciente").value.trim() ||
+  if (!sede || !$("lmpFecha").value || !$("lmpPaciente").value.trim() ||
       !$("lmpEstudio").value.trim() || !Number.isFinite(monto) || monto < 0) {
     showToast("Completa Fecha, Paciente, Estudio/Tipo y Monto.", "error");
     return;
@@ -115,7 +123,7 @@ async function guardarLmp(event) {
     let query;
     if (lmpEditandoId) {
       query = supabaseClient.from("cotizaciones").update(registro)
-        .eq("id", lmpEditandoId).eq("marca", "LMP").eq("sede", sede);
+        .eq("id", lmpEditandoId).eq("marca", "LMP").eq("sede", sedeOriginal);
     } else {
       query = supabaseClient.from("cotizaciones").insert({
         ...registro, marca: "LMP", folio: generarFolio("LMP", sede)
