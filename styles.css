@@ -371,6 +371,10 @@ html[data-theme="light"] .toast.error { border-color: rgba(220,38,38,.3); backgr
 }
 @media (max-width: 900px) { .exec-kpis-secondary { grid-template-columns: 1fr 1fr; } }
 @media (max-width: 560px) { .exec-kpis-secondary { grid-template-columns: 1fr; } }
+.exec-kpis.exec-kpis-lmp { grid-template-columns: repeat(3, minmax(0, 1fr)); margin-top: -.5rem; margin-bottom: 0; }
+.exec-kpi-lmp { border-color: rgba(78,163,255,.3); background: linear-gradient(135deg, rgba(78,163,255,.14), rgba(34,211,238,.08)); }
+@media (max-width: 900px) { .exec-kpis.exec-kpis-lmp { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 560px) { .exec-kpis.exec-kpis-lmp { grid-template-columns: 1fr; } }
 
 /* ============================================================
    TABLA DINÁMICA INTERACTIVA

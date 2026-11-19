@@ -90,6 +90,23 @@ function renderExecutiveDashboard(rows) {
     r => r.montoServicio !== null && r.montoServicio !== undefined && r.montoServicio !== ""
   );
 
+  // LMP tiene su propia ficha y se calcula exclusivamente con registros LMP.
+  const fechaInicio = $("filtroFechaInicio")?.value || "";
+  const fechaFin = $("filtroFechaFin")?.value || "";
+  const textoFiltro = normalizarTexto($("filtroTexto")?.value || "");
+  const rowsLmp = allRows.filter(r =>
+    normalizarTexto(r.marca) === "lmp" &&
+    (!sedeFiltro || normalizarTexto(r.sede) === normalizarTexto(sedeFiltro)) &&
+    (!fechaInicio || r.fechaInfusion >= fechaInicio) &&
+    (!fechaFin || r.fechaInfusion <= fechaFin) &&
+    (!textoFiltro || normalizarTexto([r.folio, r.paciente, r.servicio].join(" ")).includes(textoFiltro)) &&
+    r.montoServicio !== null && r.montoServicio !== undefined && r.montoServicio !== ""
+  );
+  $("execMontoLmp").textContent = formatearMoneda(
+    rowsLmp.reduce((total, r) => total + (Number(r.montoServicio) || 0), 0)
+  );
+  $("execMontoLmpRegistros").textContent = `${rowsLmp.length} registro(s) LMP`;
+
   if ($("execActualizado")) {
     $("execActualizado").textContent = `Actualizado: ${new Date().toLocaleString("es-MX")}`;
   }
