@@ -5,10 +5,7 @@ let lmpEditandoId = null;
 
 function filasLmpVisibles() {
   if (typeof allRows === "undefined") return [];
-  return allRows.filter(row =>
-    normalizarTexto(row.marca) === "lmp" &&
-    (currentUser?.role !== "sede" || normalizarTexto(row.sede) === normalizarTexto(currentUser.sede))
-  );
+  return allRows.filter(row => normalizarTexto(row.marca) === "lmp");
 }
 
 function renderLmpTable() {
@@ -53,9 +50,6 @@ function abrirLmp(id = null) {
   $("lmpPaciente").value = row?.paciente || "";
   $("lmpEstudio").value = row?.servicio || "";
   $("lmpMonto").value = row?.montoServicio ?? "";
-  $("lmpSedeCampo").classList.toggle("hidden", currentUser.role !== "admin");
-  $("lmpSede").required = currentUser.role === "admin";
-  $("lmpSede").value = row?.sede || "";
   $("drawerLmp").classList.remove("hidden");
   $("drawerLmpBackdrop").classList.remove("hidden");
 }
@@ -69,11 +63,10 @@ function cerrarLmp() {
 async function guardarLmp(event) {
   event.preventDefault();
   if (!currentUser || !["admin", "sede"].includes(currentUser.role)) return;
-  const sede = currentUser.role === "sede" ? currentUser.sede : $("lmpSede").value;
   const monto = Number($("lmpMonto").value);
-  if (!sede || !$("lmpFecha").value || !$("lmpPaciente").value.trim() ||
+  if (!$("lmpFecha").value || !$("lmpPaciente").value.trim() ||
       !$("lmpEstudio").value.trim() || !Number.isFinite(monto) || monto < 0) {
-    showToast("Completa Fecha, Paciente, Estudio/Tipo, Monto y Sede.", "error");
+    showToast("Completa Fecha, Paciente, Estudio/Tipo y Monto.", "error");
     return;
   }
   const registro = {
@@ -81,7 +74,7 @@ async function guardarLmp(event) {
     paciente: $("lmpPaciente").value.trim(),
     servicio: $("lmpEstudio").value.trim(),
     monto_del_servicio: monto,
-    sede
+    sede: null
   };
   const btn = $("btnGuardarLmp");
   btn.disabled = true;
@@ -90,10 +83,9 @@ async function guardarLmp(event) {
     if (lmpEditandoId) {
       query = supabaseClient.from("cotizaciones").update(registro)
         .eq("id", lmpEditandoId).eq("marca", "LMP");
-      if (currentUser.role === "sede") query = query.eq("sede", currentUser.sede);
     } else {
       query = supabaseClient.from("cotizaciones").insert({
-        ...registro, marca: "LMP", folio: generarFolio("LMP", sede)
+        ...registro, marca: "LMP", folio: generarFolio("LMP", "")
       });
     }
     const { error } = await query;

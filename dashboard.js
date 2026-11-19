@@ -96,15 +96,14 @@ function renderExecutiveDashboard(rows) {
   const textoFiltro = normalizarTexto($("filtroTexto")?.value || "");
   const rowsLmp = allRows.filter(r =>
     normalizarTexto(r.marca) === "lmp" &&
-    (!sedeFiltro || normalizarTexto(r.sede) === normalizarTexto(sedeFiltro)) &&
+    !sedeFiltro &&
     (!fechaInicio || r.fechaInfusion >= fechaInicio) &&
     (!fechaFin || r.fechaInfusion <= fechaFin) &&
     (!textoFiltro || normalizarTexto([r.folio, r.paciente, r.servicio].join(" ")).includes(textoFiltro)) &&
     r.montoServicio !== null && r.montoServicio !== undefined && r.montoServicio !== ""
   );
-  $("execMontoLmp").textContent = formatearMoneda(
-    rowsLmp.reduce((total, r) => total + (Number(r.montoServicio) || 0), 0)
-  );
+  const montoLmp = rowsLmp.reduce((total, r) => total + (Number(r.montoServicio) || 0), 0);
+  $("execMontoLmp").textContent = formatearMoneda(montoLmp);
   $("execMontoLmpRegistros").textContent = `${rowsLmp.length} registro(s) LMP`;
 
   if ($("execActualizado")) {
@@ -113,9 +112,11 @@ function renderExecutiveDashboard(rows) {
 
   // ---- KPI: monto total y ticket promedio (respeta el filtro de sede) ----
   const montoTotal = rowsConMonto.reduce((a, r) => a + (Number(r.montoServicio) || 0), 0);
-  $("execMontoTotal").textContent = formatearMoneda(montoTotal);
-  $("execMontoRegistros").textContent = `${rowsConMonto.length} registro(s) facturado(s)`;
-  $("execTicketPromedio").textContent = formatearMoneda(rowsConMonto.length ? montoTotal / rowsConMonto.length : 0);
+  const montoTotalServicio = montoTotal + montoLmp;
+  const registrosTotalServicio = rowsConMonto.length + rowsLmp.length;
+  $("execMontoTotal").textContent = formatearMoneda(montoTotalServicio);
+  $("execMontoRegistros").textContent = `${registrosTotalServicio} registro(s) facturado(s)`;
+  $("execTicketPromedio").textContent = formatearMoneda(registrosTotalServicio ? montoTotalServicio / registrosTotalServicio : 0);
 
   // ---- Agrupado por sede (siempre con TODAS las sedes, para poder comparar) ----
   const porSede = agruparSumaPorClave(rowsConMontoTodas, r => r.sede);
