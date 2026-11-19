@@ -96,7 +96,7 @@ function renderExecutiveDashboard(rows) {
   const textoFiltro = normalizarTexto($("filtroTexto")?.value || "");
   const rowsLmp = allRows.filter(r =>
     normalizarTexto(r.marca) === "lmp" &&
-    !sedeFiltro &&
+    (!sedeFiltro || normalizarTexto(r.sede) === normalizarTexto(sedeFiltro)) &&
     (!fechaInicio || r.fechaInfusion >= fechaInicio) &&
     (!fechaFin || r.fechaInfusion <= fechaFin) &&
     (!textoFiltro || normalizarTexto([r.folio, r.paciente, r.servicio].join(" ")).includes(textoFiltro)) &&

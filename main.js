@@ -1,7 +1,7 @@
 // ============================================================
 // 1) ESTADO — los datos reales se cargan desde Supabase
 // ============================================================
-const SEDES = ["", "Morelia", "Toluca", "Narvarte", "Tijuana", "Santa Fe"];
+const SEDES = ["", "Morelia", "Toluca", "Narvarte", "Tijuana", "Santa Fe", "Polanco"];
 let allRows = [];
 let filteredRows = [];
 

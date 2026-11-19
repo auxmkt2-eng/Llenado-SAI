@@ -74,7 +74,7 @@ async function guardarLmp(event) {
     paciente: $("lmpPaciente").value.trim(),
     servicio: $("lmpEstudio").value.trim(),
     monto_del_servicio: monto,
-    sede: null
+    sede: "Polanco"
   };
   const btn = $("btnGuardarLmp");
   btn.disabled = true;
@@ -85,7 +85,7 @@ async function guardarLmp(event) {
         .eq("id", lmpEditandoId).eq("marca", "LMP");
     } else {
       query = supabaseClient.from("cotizaciones").insert({
-        ...registro, marca: "LMP", folio: generarFolio("LMP", "")
+        ...registro, marca: "LMP", folio: generarFolio("LMP", "Polanco")
       });
     }
     const { error } = await query;
