@@ -37,5 +37,31 @@ for (const folder of [__dirname, path.join(__dirname, 'Llenado-SAI-LMP')]) {
     ['F', 'Eva Solís', '', '']
   ]);
   assert.match(workbook.name, /^desglose_sexo_\d{4}-\d{2}-\d{2}\.xlsx$/);
+
+  const detail = { innerHTML: '' };
+  const ui = {
+    document: { documentElement: { getAttribute: () => 'dark' }, addEventListener: () => {} },
+    window: {},
+    getComputedStyle: () => ({ getPropertyValue: () => '' }),
+    normalizarTexto: context.normalizarTexto,
+    escapeHtml: value => String(value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'),
+    $: id => id === 'apartadoDetalle' ? detail : null
+  };
+  vm.createContext(ui);
+  vm.runInContext(source, ui);
+  vm.runInContext(`
+    execUltimaData = [
+      { paciente: 'Ana Pérez', sexo: 'F', tratamiento: 'R-CHOP', medicos: 'Dra. López' },
+      { paciente: 'Luis Ruiz', sexo: 'M', tratamiento: 'QT', medicos: 'Dr. García' }
+    ];
+    apartadoActivo = 'sexo';
+    apartadoDetBuscarTexto = 'f';
+    renderDetalleApartado();
+  `, ui);
+  assert.match(detail.innerHTML, /Detalle por paciente/);
+  assert.match(detail.innerHTML, /Ana Pérez/);
+  assert.match(detail.innerHTML, /R-CHOP/);
+  assert.match(detail.innerHTML, /Dra\. López/);
+  assert.doesNotMatch(detail.innerHTML, /Luis Ruiz/);
   console.log(`Exportación de Sexo correcta: ${folder}`);
 }

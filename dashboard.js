@@ -388,6 +388,14 @@ function filasDelApartado(campo, soloValoresVisibles = false) {
   });
 }
 
+function datosPacientesApartado(campo) {
+  return filasDelApartado(campo, true).map(r => {
+    const valor = campo.key === "diagnostico" ? categoriaDiagnostico(r.diagnostico)
+      : campo.key === "medicos" ? homologarMedico(r.medicos) : apartadoValorCelda(r[campo.key]);
+    return [valor, r.paciente || "", r.tratamiento || "", r.medicos || ""];
+  });
+}
+
 function montosPorDiagnostico(rows) {
   const mapa = new Map();
   rows.forEach(r => {
@@ -617,6 +625,10 @@ function renderDetalleApartado() {
 
   }
 
+  const detalles = datosPacientesApartado(campo);
+  const filasPacientesHtml = detalles.map(([valor, paciente, tratamiento, medicos]) => `
+    <tr><td>${escapeHtml(valor)}</td><td>${escapeHtml(paciente)}</td><td>${escapeHtml(tratamiento || "Sin dato")}</td><td>${escapeHtml(medicos || "Sin dato")}</td></tr>`).join("");
+
   cont.innerHTML = `
     <div class="apartado-detalle-head">
       <div>
@@ -633,6 +645,13 @@ function renderDetalleApartado() {
       ${bodyHtml}
       <div class="pivot-table-wrap apartado-table-wrap">
         <table class="pivot-table" id="apartadoTabla">${tablaHeadHtml}<tbody>${tablaFilasHtml}</tbody></table>
+      </div>
+      <h4 class="apartado-pacientes-titulo">Detalle por paciente <span>${detalles.length} registro(s)</span></h4>
+      <div class="pivot-table-wrap apartado-pacientes-wrap">
+        <table class="pivot-table apartado-pacientes-tabla">
+          <thead><tr><th>${campo.key === "diagnostico" ? "Categoría de diagnóstico" : escapeHtml(campo.label)}</th><th>Paciente</th><th>Tratamiento</th><th>Médicos encargados</th></tr></thead>
+          <tbody>${filasPacientesHtml || '<tr><td colspan="4">Sin pacientes para este filtro.</td></tr>'}</tbody>
+        </table>
       </div>
     </div>`;
 
@@ -667,11 +686,7 @@ function exportarApartadoAExcel(campo) {
   const hoja = XLSX.utils.table_to_sheet(tabla);
   const libro = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(libro, hoja, "Resumen");
-  const detalles = filasDelApartado(campo, true).map(r => {
-    const valor = campo.key === "diagnostico" ? categoriaDiagnostico(r.diagnostico)
-      : campo.key === "medicos" ? homologarMedico(r.medicos) : apartadoValorCelda(r[campo.key]);
-    return [valor, r.paciente || "", r.tratamiento || "", r.medicos || ""];
-  });
+  const detalles = datosPacientesApartado(campo);
   const hojaPacientes = XLSX.utils.aoa_to_sheet([
     [campo.label, "Paciente", "Tratamiento", "Médico encargado"],
     ...detalles
