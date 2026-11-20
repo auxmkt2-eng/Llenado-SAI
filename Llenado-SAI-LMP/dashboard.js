@@ -368,6 +368,25 @@ function pacientesPorMedico(rows) {
   return mapa;
 }
 
+function filasDelApartado(campo, soloValoresVisibles = false) {
+  let rows = (execUltimaData || []).filter(r => r.paciente);
+  if (campo.key === "diagnostico") {
+    const sedeFiltro = $("filtroSede") ? normalizarTexto($("filtroSede").value) : "";
+    rows = rows.filter(r => normalizarTexto(r.marca) === "sanare" &&
+      (!sedeFiltro || normalizarTexto(r.sede) === sedeFiltro));
+  }
+  if (!soloValoresVisibles || campo.tipo === "numerica" || !apartadoDetBuscarTexto) return rows;
+
+  const q = normalizarTexto(apartadoDetBuscarTexto);
+  return rows.filter(r => {
+    const grupo = campo.key === "diagnostico" ? categoriaDiagnostico(r.diagnostico)
+      : campo.key === "medicos" ? homologarMedico(r.medicos) : apartadoValorCelda(r[campo.key]);
+    return normalizarTexto(grupo).includes(q) ||
+      ((campo.key === "diagnostico" || campo.key === "medicos") &&
+        normalizarTexto(apartadoValorCelda(r[campo.key])).includes(q));
+  });
+}
+
 function montosPorDiagnostico(rows) {
   const mapa = new Map();
   rows.forEach(r => {
@@ -499,12 +518,7 @@ function renderDetalleApartado() {
   const campo = APARTADOS.find(a => a.key === apartadoActivo);
   if (!campo) return;
 
-  let rows = (execUltimaData || []).filter(r => r.paciente);
-  if (campo.key === "diagnostico") {
-    const sedeFiltro = $("filtroSede") ? normalizarTexto($("filtroSede").value) : "";
-    rows = rows.filter(r => normalizarTexto(r.marca) === "sanare" &&
-      (!sedeFiltro || normalizarTexto(r.sede) === sedeFiltro));
-  }
+  const rows = filasDelApartado(campo);
   const colores = obtenerColoresTema();
 
   let subtitulo = "";
@@ -651,7 +665,18 @@ function exportarApartadoAExcel(campo) {
   }
   const hoja = XLSX.utils.table_to_sheet(tabla);
   const libro = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(libro, hoja, campo.label.slice(0, 28));
+  XLSX.utils.book_append_sheet(libro, hoja, "Resumen");
+  const detalles = filasDelApartado(campo, true).map(r => {
+    const valor = campo.key === "diagnostico" ? categoriaDiagnostico(r.diagnostico)
+      : campo.key === "medicos" ? homologarMedico(r.medicos) : apartadoValorCelda(r[campo.key]);
+    return [valor, r.paciente || "", r.tratamiento || "", r.medicos || ""];
+  });
+  const hojaPacientes = XLSX.utils.aoa_to_sheet([
+    [campo.label, "Paciente", "Tratamiento", "Médico encargado"],
+    ...detalles
+  ]);
+  hojaPacientes["!cols"] = [{ wch: 30 }, { wch: 36 }, { wch: 36 }, { wch: 36 }];
+  XLSX.utils.book_append_sheet(libro, hojaPacientes, "Pacientes");
   const fechaHoy = new Date().toISOString().slice(0, 10);
   XLSX.writeFile(libro, `desglose_${campo.key}_${fechaHoy}.xlsx`);
   showToast("Desglose exportado.", "success");
